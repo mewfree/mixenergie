@@ -31,13 +31,13 @@ L'intensité GES (g/kWh) est une moyenne pondérée des facteurs de cycle de vie
 
 | Couche            | Quoi             | Durée                                  |
 |-------------------+------------------+----------------------------------------|
-| KV =mix:snapshot= | Payload assemblé | Frais 15 min, servi périmé jusqu'à 6 h |
-| KV =mix:year=     | Mix annuel 2025  | Frais 24 h, TTL 7 jours                |
-| Lecture KV        | =cacheTtl= 5 min | Cache de bord des lectures             |
-| Navigateur        | =Cache-Control=  | 2 min + SWR 15 min                     |
-| Cron              | =*/10 * * * *=   | Réchauffe le snapshot                  |
+| KV =mix:snapshot= | Payload assemblé | Frais tant que la demande a moins de ~16,5 min, servi périmé jusqu'à 6 h |
+| KV =mix:year=     | Mix annuel 2025  | Frais 24 h, TTL 7 jours                                                  |
+| Lecture KV        | =cacheTtl= 60 s  | Cache de bord des lectures (minimum KV)                                  |
+| Navigateur        | =Cache-Control=  | Frais 1 min + SWR 1 min ; périmé max-age 0                               |
+| Cron              | =*/5 * * * *=    | Réchauffe le snapshot                                                    |
 
-Les requêtes lisent KV. Un snapshot encore frais est renvoyé tel quel. Un snapshot un peu vieux est renvoyé tout de suite, puis rafraîchi en arrière-plan. Le mix annuel n'est refetché qu'une fois par jour.
+Les requêtes lisent KV. Un snapshot encore frais (demande du quart d'heure en cours) est renvoyé tel quel. Un snapshot d'un intervalle en retard est renvoyé tout de suite, puis rafraîchi en arrière-plan. Deux intervalles ou plus de retard : rafraîchissement synchrone. Le mix annuel n'est refetché qu'une fois par jour.
 
 Le namespace KV =MIX= est auto-provisionné (local au =dev=, créé au =deploy=).
 

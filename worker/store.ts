@@ -1,12 +1,13 @@
 import {
   cacheState,
+  DEMAND_INTERVAL_MS,
+  hqDataAgeMs,
   KV_LOCK,
   KV_READ_CACHE_TTL,
   KV_SNAPSHOT,
   KV_YEAR,
   LOCK_TTL_SECONDS,
-  SNAPSHOT_FRESH_MS,
-  SNAPSHOT_MAX_MS,
+  snapshotCacheState,
   SNAPSHOT_TTL_SECONDS,
   YEAR_FRESH_MS,
   YEAR_TTL_SECONDS,
@@ -103,13 +104,30 @@ export async function refreshMix(env: Env): Promise<MixPayload> {
 export async function serveMix(env: Env, ctx: ExecutionContext): Promise<MixResult> {
   const cached = await readSnapshot(env);
   if (cached) {
-    const state = cacheState(cached.storedAt, SNAPSHOT_FRESH_MS, SNAPSHOT_MAX_MS);
+    const state = snapshotCacheState(cached.storedAt, cached.payload.demand?.at);
     const ageSeconds = Math.round((Date.now() - cached.storedAt) / 1000);
     if (state === "fresh") {
       return { payload: cached.payload, state, ageSeconds };
     }
     if (state === "stale") {
-      ctx.waitUntil(refreshIfUnlocked(env));
+      try {
+        const demandAge = cached.payload.demand
+          ? hqDataAgeMs(cached.payload.demand.at)
+          : 0;
+        if (demandAge >= 2 * DEMAND_INTERVAL_MS) {
+          const fresh = await refreshIfUnlocked(env);
+          if (fresh) return { payload: fresh, state: "miss", ageSeconds: 0 };
+        } else {
+          ctx.waitUntil(refreshIfUnlocked(env));
+        }
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            message: "stale mix refresh failed",
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+      }
       return { payload: cached.payload, state, ageSeconds };
     }
   }
@@ -129,10 +147,12 @@ export async function serveMix(env: Env, ctx: ExecutionContext): Promise<MixResu
   }
 }
 
-async function refreshIfUnlocked(env: Env): Promise<void> {
-  if (!(await acquireLock(env))) return;
+async function refreshIfUnlocked(env: Env): Promise<MixPayload | null> {
+  let locked = false;
   try {
-    await refreshMix(env);
+    locked = await acquireLock(env);
+    if (!locked) return null;
+    return await refreshMix(env);
   } catch (error) {
     console.error(
       JSON.stringify({
@@ -140,5 +160,14 @@ async function refreshIfUnlocked(env: Env): Promise<void> {
         error: error instanceof Error ? error.message : String(error),
       }),
     );
+    return null;
+  } finally {
+    if (locked) {
+      try {
+        await env.MIX.delete(KV_LOCK);
+      } catch {
+        // lock expires via TTL
+      }
+    }
   }
 }

@@ -1,3 +1,4 @@
+import { mixCacheControl } from "../shared/cache.ts";
 import { refreshMix, serveMix } from "./store.ts";
 
 function json(
@@ -8,7 +9,7 @@ function json(
   return Response.json(data, {
     status,
     headers: {
-      "Cache-Control": "public, max-age=120, stale-while-revalidate=900",
+      "Cache-Control": mixCacheControl("fresh"),
       "Access-Control-Allow-Origin": "*",
       ...extra,
     },
@@ -30,12 +31,13 @@ export default {
     }
 
     if (url.pathname !== "/api/mix") {
-      return json({ error: "not found" }, 404);
+      return json({ error: "not found" }, 404, { "Cache-Control": "no-store" });
     }
 
     try {
       const result = await serveMix(env, ctx);
       return json(result.payload, 200, {
+        "Cache-Control": mixCacheControl(result.state),
         "X-Mix-Cache": result.state,
         "X-Mix-Age": String(result.ageSeconds),
       });
@@ -46,7 +48,9 @@ export default {
           error: error instanceof Error ? error.message : String(error),
         }),
       );
-      return json({ error: "upstream unavailable" }, 502);
+      return json({ error: "upstream unavailable" }, 502, {
+        "Cache-Control": "no-store",
+      });
     }
   },
 

@@ -46,6 +46,24 @@ export function formatHqHour(value: string, locale: Locale): string {
   return `${hour}:${minute}`;
 }
 
+export function formatHqTick(value: string, locale: Locale): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T/.exec(value);
+  if (!match) return formatHqHour(value, locale);
+  const [, , month, day] = match;
+  const time = formatHqHour(value, locale);
+  if (locale === "fr") return `${Number(day)}/${month} ${time}`;
+  return `${Number(month)}/${Number(day)} ${time}`;
+}
+
+export function formatMwCompact(value: number, locale: Locale): string {
+  if (value === 0) return "0";
+  return new Intl.NumberFormat(localeTag(locale), {
+    notation: "compact",
+    compactDisplay: "short",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 export function formatSignedMw(value: number, locale: Locale): string {
   const abs = formatMw(Math.abs(value), locale);
   if (value > 0) return `+${abs}`;

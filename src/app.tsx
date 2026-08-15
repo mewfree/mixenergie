@@ -42,7 +42,7 @@ export function App() {
       setLoading(true);
       setError(false);
       try {
-        const response = await fetch("/api/mix");
+        const response = await fetch("/api/mix", { cache: "no-store" });
         if (!response.ok) throw new Error(String(response.status));
         const payload = (await response.json()) as MixPayload;
         if (!cancelled) setData(payload);
@@ -53,7 +53,7 @@ export function App() {
       }
     }
     void load();
-    const id = window.setInterval(() => void load(), 300_000);
+    const id = window.setInterval(() => void load(), 60_000);
     return () => {
       cancelled = true;
       window.clearInterval(id);

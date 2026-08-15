@@ -91,7 +91,7 @@ async function getJson(url: string): Promise<unknown> {
       "User-Agent": "mixenergie/0.1 (https://github.com/mewfree/mixenergie)",
     },
     signal: AbortSignal.timeout(10_000),
-    cf: { cacheEverything: true, cacheTtl: 120 },
+    cf: { cacheEverything: true, cacheTtl: 60 },
   });
   if (!response.ok) {
     throw new Error(`${url} -> ${response.status}`);
