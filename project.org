@@ -1,0 +1,17 @@
+#+title: mixénergie — Project
+#+todo: TODO PROGRESS | DONE CANCELLED
+
+* Product
+** DONE Lean Vite + Workers scaffold (no SaaS template)
+** DONE Worker API /api/mix from HQ open data
+** DONE FR-first bilingual dashboard
+** DONE 48h chart, interties, 2025 mix
+** DONE KV snapshot cache + cron refresh
+** TODO Deploy to Cloudflare Workers
+** TODO Custom domain
+** TODO OG image
+
+* Later
+** TODO Historical day / week picker from historique-* datasets
+** TODO Demand-only 15 min sparkline
+** TODO Import intensity vs local intensity

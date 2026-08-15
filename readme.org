@@ -1,0 +1,75 @@
+#+title: mixénergie
+#+subtitle: Mix énergétique du Québec
+
+Site simple, pour lire le mix électrique d'Hydro-Québec : production, demande, échanges et mix annuel.
+
+* Stack
+
+| Concern     | Choix                                      |
+|-------------+--------------------------------------------|
+| Front       | Vite + React + TypeScript                  |
+| Style       | Tailwind CSS v4                            |
+| API         | Worker + KV (snapshot 15 min, annuel 24 h) |
+| Hébergement | Cloudflare Workers + static assets         |
+
+* Données
+
+Sources officielles d'Hydro-Québec (CC BY-NC 4.0) :
+
+- Production horaire :: https://www.hydroquebec.com/data/documents-donnees/donnees-ouvertes/json/production.json
+- Demande 15 min :: https://www.hydroquebec.com/data/documents-donnees/donnees-ouvertes/json/demande.json
+- Import / export :: https://donnees.solutions.hydroquebec.com/donnees-ouvertes/data/json/importexport.json
+- Historique annuel :: https://donnees.hydroquebec.com/explore/dataset/historique-production-electricite-quebec/
+
+Les timestamps HQ sont en heure de l'Est, sans fuseau. Le site les affiche tels quels.
+
+Délais connus : ~90 min pour l'hydraulique / éolien / solaire / autres, ~6 h pour le thermique, 15 min pour la demande.
+
+L'intensité GES (g/kWh) est une moyenne pondérée des facteurs de cycle de vie publiés par Hydro-Québec. Le poste "autres renouvelables" n'a pas de facteur officiel : 45 g/kWh (estimation).
+
+* Cache
+
+| Couche            | Quoi             | Durée                                  |
+|-------------------+------------------+----------------------------------------|
+| KV =mix:snapshot= | Payload assemblé | Frais 15 min, servi périmé jusqu'à 6 h |
+| KV =mix:year=     | Mix annuel 2025  | Frais 24 h, TTL 7 jours                |
+| Lecture KV        | =cacheTtl= 5 min | Cache de bord des lectures             |
+| Navigateur        | =Cache-Control=  | 2 min + SWR 15 min                     |
+| Cron              | =*/10 * * * *=   | Réchauffe le snapshot                  |
+
+Les requêtes lisent KV. Un snapshot encore frais est renvoyé tel quel. Un snapshot un peu vieux est renvoyé tout de suite, puis rafraîchi en arrière-plan. Le mix annuel n'est refetché qu'une fois par jour.
+
+Le namespace KV =MIX= est auto-provisionné (local au =dev=, créé au =deploy=).
+
+* Commandes
+
+#+begin_src bash
+npm install
+npm run dev
+#+end_src
+
+| Commande          | Rôle                                      |
+|-------------------+-------------------------------------------|
+| =npm run dev=     | Vite + Worker en local                    |
+| =npm run build=   | Build client + Worker                     |
+| =npm run preview= | Prévisualisation workerd                  |
+| =npm run deploy=  | Build + déploiement Cloudflare            |
+| =npm test=        | Tests du calcul de mix                    |
+| =npm run lint=    | oxlint                                    |
+
+* i18n
+
+- =/= français (défaut)
+- =/en= anglais
+- Copie dans =src/i18n.ts=
+
+* Layout
+
+#+begin_example
+shared/          Types + calculs (front et worker)
+worker/          API /api/mix
+src/             UI
+public/          Favicon
+wrangler.jsonc   Cloudflare
+project.org      Suivi des tâches
+#+end_example
