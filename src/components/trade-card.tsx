@@ -64,7 +64,7 @@ export function TradeCard({ locale, data }: Props) {
               <li key={fuel.key} className="flex items-center justify-between gap-2">
                 <span className="inline-flex items-center gap-1.5">
                   <span
-                    className="h-2 w-2 rounded-full"
+                    className="h-2 w-2 rounded-full ring-1 ring-ink/15"
                     style={{ background: IMPORT_COLOR[fuel.key] }}
                   />
                   {t.importFuel[fuel.key]}

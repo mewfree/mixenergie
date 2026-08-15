@@ -2,28 +2,33 @@
 
 @theme {
   --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
-  --color-paper: #f3f0e8;
-  --color-card: #fffcf7;
-  --color-ink: #12201c;
-  --color-muted: #5c6b66;
-  --color-line: #d9d3c6;
-  --color-accent: #2c4560;
+  --color-paper: #edf1f6;
+  --color-card: #ffffff;
+  --color-ink: #0d1266;
+  --color-muted: #5c6480;
+  --color-line: #ced5db;
+  --color-accent: #009aff;
+  --color-on-accent: #ffffff;
 }
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root[data-theme="dark"] {
-  --color-paper: #101816;
-  --color-card: #18221f;
-  --color-ink: #e8efe8;
-  --color-muted: #9aaba4;
-  --color-line: #2a3834;
-  --color-accent: #9bb0c7;
+  color-scheme: dark;
+  --color-paper: #090b18;
+  --color-card: #232948;
+  --color-ink: #f6f8fc;
+  --color-muted: #b4bdd4;
+  --color-line: #6a7398;
+  --color-accent: #009aff;
+  --color-on-accent: #ffffff;
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.45), 0 8px 24px rgb(0 0 0 / 0.22);
 }
 
 html {
   background: var(--color-paper);
   color: var(--color-ink);
+  color-scheme: light;
 }
 
 body {

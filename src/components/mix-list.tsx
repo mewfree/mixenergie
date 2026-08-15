@@ -46,7 +46,7 @@ export function MixList({ locale, data }: Props) {
                   title={t.sourceHint[key]}
                 >
                   <span
-                    className="h-2.5 w-2.5 rounded-full"
+                    className="h-2.5 w-2.5 rounded-full ring-1 ring-ink/15"
                     style={{ background: SOURCE_COLOR[key] }}
                   />
                   {t.source[key]}
@@ -56,7 +56,7 @@ export function MixList({ locale, data }: Props) {
                   {formatMw(mw, locale)} {t.mw}
                 </span>
               </div>
-              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-paper">
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-line">
                 <div
                   className="h-full rounded-full"
                   style={{

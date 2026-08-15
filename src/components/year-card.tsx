@@ -31,14 +31,14 @@ export function YearCard({ locale, data }: Props) {
               <div className="flex items-center justify-between gap-3 text-sm">
                 <span className="flex items-center gap-2 font-medium text-ink">
                   <span
-                    className="h-2.5 w-2.5 rounded-full"
+                    className="h-2.5 w-2.5 rounded-full ring-1 ring-ink/15"
                     style={{ background: SOURCE_COLOR[key] }}
                   />
                   {t.source[key]}
                 </span>
                 <span className="tabular-nums text-muted">{formatPct(share, locale)}</span>
               </div>
-              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-paper">
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-line">
                 <div
                   className="h-full rounded-full"
                   style={{

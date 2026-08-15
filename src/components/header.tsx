@@ -20,7 +20,7 @@ export function Header({ locale, theme, onTheme, onLocale }: Props) {
           href={locale === "en" ? "/en" : "/"}
           className="flex items-center gap-2.5"
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-paper">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-on-accent">
             <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
               <path
                 fill="currentColor"

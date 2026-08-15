@@ -99,7 +99,7 @@ export function App() {
             <p className="text-ink">{t.error}</p>
             <button
               type="button"
-              className="mt-3 cursor-pointer rounded-full bg-accent px-4 py-2 text-sm font-medium text-paper"
+              className="mt-3 cursor-pointer rounded-full bg-accent px-4 py-2 text-sm font-medium text-on-accent"
               onClick={() => window.location.reload()}
             >
               {t.retry}
