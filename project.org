@@ -15,3 +15,17 @@
 ** TODO Historical day / week picker from historique-* datasets
 ** TODO Demand-only 15 min sparkline
 ** TODO Import intensity vs local intensity
+
+* Provinces
+** TODO Site structure: path (/on, /ab) vs subdomain (on.mixenergie.ca), shared chrome, i18n
+** TODO Ontario from IESO public XML (hourly fuel mix, demand, 14 interties)
+** TODO Alberta from AESO CSD / API (live mix, AIL, BC/SK/Montana)
+** TODO Nova Scotia from NS Power (live mix JSON is 404; OASIS HTML + Maritime Link)
+** TODO Saskatchewan from SaskPower JSON (daily-average mix, 5 min demand)
+** TODO New Brunswick from NB Power (live demand + interties; no fuel split)
+** TODO British Columbia from BC Hydro (hourly load + live interties; no live mix)
+** TODO Manitoba (no live mix; StatCan / annual; ON intertie from IESO)
+** TODO Prince Edward Island (wind dashboard + NB imports; fragile)
+** TODO Newfoundland and Labrador from NL Hydro (island demand, Muskrat / Churchill Falls MW)
+** TODO Yukon from Yukon Energy live dashboard (hydro/wind/solar/thermal; isolated)
+** TODO Canada-wide aggregate from provincial feeds (plus StatCan 25-10-0015-01 for the year card)
