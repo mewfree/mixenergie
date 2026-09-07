@@ -33,6 +33,17 @@ type Dict = {
   notOfficial: string;
   easternTime: string;
   mw: string;
+  live: string;
+  netExporter: string;
+  netImporter: string;
+  balanced: string;
+  ultraLowCarbon: string;
+  cleanEnergy: string;
+  surplus: string;
+  deficit: string;
+  exporting: string;
+  importing: string;
+  lastUpdate: string;
   source: Record<SourceKey, string>;
   sourceHint: Record<SourceKey, string>;
   market: Record<MarketKey, string>;
@@ -74,6 +85,17 @@ export const dict: Record<Locale, Dict> = {
       "Ce site est indépendant. Il n'est pas un produit d'Hydro-Québec.",
     easternTime: "Heure de l'Est",
     mw: "MW",
+    live: "En direct",
+    netExporter: "Exportateur net",
+    netImporter: "Importateur net",
+    balanced: "Équilibré",
+    ultraLowCarbon: "Ultra-bas carbone",
+    cleanEnergy: "Énergie renouvelable",
+    surplus: "Surplus",
+    deficit: "Déficit",
+    exporting: "Exportation",
+    importing: "Importation",
+    lastUpdate: "Dernière lecture",
     source: {
       hydro: "Hydraulique",
       wind: "Éolien",
@@ -138,6 +160,17 @@ export const dict: Record<Locale, Dict> = {
     notOfficial: "This is an independent site. It is not a Hydro-Québec product.",
     easternTime: "Eastern Time",
     mw: "MW",
+    live: "Live",
+    netExporter: "Net exporter",
+    netImporter: "Net importer",
+    balanced: "Balanced",
+    ultraLowCarbon: "Ultra-low carbon",
+    cleanEnergy: "Renewable energy",
+    surplus: "Surplus",
+    deficit: "Deficit",
+    exporting: "Export",
+    importing: "Import",
+    lastUpdate: "Latest reading",
     source: {
       hydro: "Hydro",
       wind: "Wind",

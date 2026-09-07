@@ -11,16 +11,15 @@ type Props = {
 
 export function Header({ locale, theme, onTheme, onLocale }: Props) {
   const t = dict[locale];
-  const other: Locale = locale === "fr" ? "en" : "fr";
 
   return (
-    <header className="sticky top-0 z-20 border-b border-line/80 bg-paper/85 backdrop-blur-md">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
+    <header className="sticky top-0 z-30 border-b border-line/60 bg-paper/85 backdrop-blur-md transition-colors">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <a
           href={locale === "en" ? "/en" : "/"}
-          className="flex items-center gap-2.5"
+          className="group flex items-center gap-2.5 transition-opacity hover:opacity-90 active:scale-[0.99]"
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-on-accent">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-paper dark:bg-card dark:text-ink dark:border dark:border-line">
             <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
               <path
                 fill="currentColor"
@@ -28,21 +27,50 @@ export function Header({ locale, theme, onTheme, onLocale }: Props) {
               />
             </svg>
           </span>
-          <span className="font-semibold tracking-tight text-ink">{t.title}</span>
+          <div className="flex items-center gap-2.5">
+            <span className="text-base font-bold tracking-tight text-ink sm:text-lg">{t.title}</span>
+            <span className="hidden items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 sm:inline-flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              {t.live}
+            </span>
+          </div>
         </a>
-        <div className="flex items-center gap-1">
+
+        <div className="flex items-center gap-2">
+          {/* Segmented language toggle */}
+          <div className="inline-flex rounded-lg border border-line bg-card p-0.5 text-xs font-medium">
+            <button
+              type="button"
+              onClick={() => onLocale("fr")}
+              className={`cursor-pointer rounded-md px-2.5 py-1 transition-colors ${
+                locale === "fr"
+                  ? "bg-ink text-paper font-semibold dark:bg-line dark:text-ink"
+                  : "text-muted hover:text-ink"
+              }`}
+              aria-label="Français"
+            >
+              FR
+            </button>
+            <button
+              type="button"
+              onClick={() => onLocale("en")}
+              className={`cursor-pointer rounded-md px-2.5 py-1 transition-colors ${
+                locale === "en"
+                  ? "bg-ink text-paper font-semibold dark:bg-line dark:text-ink"
+                  : "text-muted hover:text-ink"
+              }`}
+              aria-label="English"
+            >
+              EN
+            </button>
+          </div>
+
+          {/* Theme switcher */}
           <button
             type="button"
-            className="cursor-pointer rounded-full px-3 py-1.5 text-sm font-medium text-muted hover:bg-card hover:text-ink"
-            onClick={() => onLocale(other)}
-          >
-            {other.toUpperCase()}
-          </button>
-          <button
-            type="button"
-            className="cursor-pointer rounded-full p-2 text-muted hover:bg-card hover:text-ink"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-line bg-card text-muted transition-colors hover:text-ink"
             onClick={() => onTheme(theme === "dark" ? "light" : "dark")}
-            aria-label={theme === "dark" ? "Light" : "Dark"}
+            aria-label={theme === "dark" ? "Light theme" : "Dark theme"}
           >
             {theme === "dark" ? <SunIcon /> : <MoonIcon />}
           </button>
