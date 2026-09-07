@@ -2,12 +2,12 @@
 
 @theme {
   --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
-  --color-paper: #edf1f6;
+  --color-paper: #f1f4f9;
   --color-card: #ffffff;
-  --color-ink: #0d1266;
-  --color-muted: #5c6480;
-  --color-line: #ced5db;
-  --color-accent: #009aff;
+  --color-ink: #090f30;
+  --color-muted: #59657c;
+  --color-line: #d6dde7;
+  --color-accent: #0088ff;
   --color-on-accent: #ffffff;
 }
 
@@ -15,17 +15,18 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-paper: #090b18;
-  --color-card: #232948;
-  --color-ink: #f6f8fc;
-  --color-muted: #b4bdd4;
-  --color-line: #6a7398;
+  --color-paper: #080c18;
+  --color-card: #11172a;
+  --color-ink: #f0f4fa;
+  --color-muted: #8493ad;
+  --color-line: #1c263d;
   --color-accent: #009aff;
   --color-on-accent: #ffffff;
-  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.45), 0 8px 24px rgb(0 0 0 / 0.22);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.5), 0 6px 20px rgb(0 0 0 / 0.25);
 }
 
 html {
+  font-size: 17px;
   background: var(--color-paper);
   color: var(--color-ink);
   color-scheme: light;
