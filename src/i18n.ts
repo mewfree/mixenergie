@@ -5,45 +5,51 @@ export type Locale = "fr" | "en";
 type Dict = {
   title: string;
   pageTitle: string;
-  tagline: string;
-  updated: string;
+  scope: string;
+  heroLead: string;
+  lastUpdate: string;
+  easternTime: string;
+  delayNote: string;
+  live: string;
+  renewableShort: string;
   production: string;
   demand: string;
-  renewable: string;
   intensity: string;
   intensityUnit: string;
-  sources: string;
-  lastHours: string;
-  trade: string;
-  exports: string;
-  imports: string;
-  net: string;
-  yearTitle: string;
-  yearHint: string;
+  intensityRef: string;
   low: string;
   high: string;
-  retry: string;
-  error: string;
-  aboutTitle: string;
-  legalTitle: string;
-  scrubHint: string;
-  about: string;
-  delay: string;
-  license: string;
-  sourcesLink: string;
-  notOfficial: string;
-  easternTime: string;
-  mw: string;
-  live: string;
+  net: string;
   netExporter: string;
   netImporter: string;
   balanced: string;
-  ultraLowCarbon: string;
+  sources: string;
+  nowCol: string;
+  yearCol: string;
+  yearHint: string;
+  total: string;
+  lastHours: string;
+  scrubHint: string;
   surplus: string;
   deficit: string;
+  trade: string;
+  exports: string;
+  imports: string;
+  totalExported: string;
+  totalImported: string;
+  importOrigin: string;
   exporting: string;
   importing: string;
-  lastUpdate: string;
+  retry: string;
+  error: string;
+  aboutTitle: string;
+  about: string;
+  delay: string;
+  legalTitle: string;
+  license: string;
+  sourcesLink: string;
+  notOfficial: string;
+  mw: string;
   source: Record<SourceKey, string>;
   sourceHint: Record<SourceKey, string>;
   market: Record<MarketKey, string>;
@@ -53,49 +59,54 @@ type Dict = {
 export const dict: Record<Locale, Dict> = {
   fr: {
     title: "mixénergie",
-    pageTitle: "mixénergie · Mix énergétique du Québec",
-    tagline: "Le mix énergétique du Québec, en direct.",
-    updated: "Données d'Hydro-Québec",
+    pageTitle: "mixénergie · Mix énergétique du Québec en direct",
+    scope: "Québec · Hydro-Québec",
+    heroLead: "de l'électricité produite au Québec est renouvelable en ce moment.",
+    lastUpdate: "Mesure de",
+    easternTime: "Heure de l'Est",
+    delayNote: "Données publiées par Hydro-Québec avec environ 90 minutes de retard.",
+    live: "En direct",
+    renewableShort: "renouvelables",
     production: "Production",
     demand: "Demande",
-    renewable: "Renouvelable",
-    intensity: "Intensité GES",
-    intensityUnit: "g/kWh",
-    sources: "Sources",
-    lastHours: "48 dernières heures",
-    trade: "Échanges",
-    exports: "Exportations",
-    imports: "Importations",
+    intensity: "Intensité carbone",
+    intensityUnit: "g CO₂éq/kWh",
+    intensityRef: "Gaz naturel : {g} g/kWh",
+    low: "min. 48 h",
+    high: "max. 48 h",
     net: "Solde net",
-    yearTitle: "Mix 2025",
-    yearHint: "Somme horaire sur l'année civile, données historiques.",
-    low: "min",
-    high: "max",
-    retry: "Réessayer",
-    error: "Impossible de charger les données.",
-    legalTitle: "Sources & mentions",
-    scrubHint: "Glisser sur le graphique pour inspecter",
-    aboutTitle: "À propos des données",
-    about:
-      "La production vient des centrales d'Hydro-Québec et des producteurs indépendants liés par contrat, plus Churchill Falls. La demande est calculée par le Centre de conduite du réseau, hors réseaux autonomes. L'intensité GES est une moyenne pondérée des facteurs de cycle de vie d'Hydro-Québec (28 g pour l'hydraulique, 14 g pour l'éolien, 64 g pour le solaire, 608 g pour le thermique).",
-    delay:
-      "La production est publiée à la demie de l'heure, avec un délai d'environ 90 minutes (6 heures pour le thermique). La demande est mise à jour toutes les 15 minutes.",
-    license: "Licence CC BY-NC 4.0. Données brutes, sans garantie de qualité.",
-    sourcesLink: "Données ouvertes Hydro-Québec",
-    notOfficial:
-      "Ce site est indépendant. Il n'est pas un produit d'Hydro-Québec.",
-    easternTime: "Heure de l'Est",
-    mw: "MW",
-    live: "En direct",
     netExporter: "Exportateur net",
     netImporter: "Importateur net",
     balanced: "Équilibré",
-    ultraLowCarbon: "Ultra-bas carbone",
+    sources: "D'où vient l'électricité",
+    nowCol: "Maintenant",
+    yearCol: "2025",
+    yearHint: "2025 : somme horaire sur l'année civile, données historiques.",
+    total: "Total",
+    lastHours: "Production et demande, 48 h",
+    scrubHint: "Glisser sur le graphique pour inspecter",
     surplus: "Surplus",
     deficit: "Déficit",
-    exporting: "Exportation",
-    importing: "Importation",
-    lastUpdate: "Dernière lecture",
+    trade: "Échanges avec les réseaux voisins",
+    exports: "Exportations",
+    imports: "Importations",
+    totalExported: "Total exporté",
+    totalImported: "Total importé",
+    importOrigin: "Provenance des importations",
+    exporting: "Exporte",
+    importing: "Importe",
+    retry: "Réessayer",
+    error: "Impossible de charger les données.",
+    aboutTitle: "À propos des données",
+    about:
+      "La production vient des centrales d'Hydro-Québec et des producteurs indépendants liés par contrat, plus Churchill Falls. La demande est calculée par le Centre de conduite du réseau, hors réseaux autonomes. L'intensité carbone est une moyenne pondérée des facteurs de cycle de vie d'Hydro-Québec (28 g pour l'hydraulique, 14 g pour l'éolien, 64 g pour le solaire, 608 g pour le thermique).",
+    delay:
+      "La production est publiée à la demie de l'heure, avec un délai d'environ 90 minutes (6 heures pour le thermique). La demande est mise à jour toutes les 15 minutes.",
+    legalTitle: "Sources et mentions",
+    license: "Licence CC BY-NC 4.0. Données brutes, sans garantie de qualité.",
+    sourcesLink: "Données ouvertes Hydro-Québec",
+    notOfficial: "Ce site est indépendant. Il n'est pas un produit d'Hydro-Québec.",
+    mw: "MW",
     source: {
       hydro: "Hydraulique",
       wind: "Éolien",
@@ -129,48 +140,54 @@ export const dict: Record<Locale, Dict> = {
   },
   en: {
     title: "mixénergie",
-    pageTitle: "mixénergie · Québec electricity mix",
-    tagline: "Québec's electricity mix, live.",
-    updated: "Hydro-Québec data",
+    pageTitle: "mixénergie · Québec's electricity mix, live",
+    scope: "Québec · Hydro-Québec",
+    heroLead: "of the electricity generated in Québec is renewable right now.",
+    lastUpdate: "Reading from",
+    easternTime: "Eastern Time",
+    delayNote: "Published by Hydro-Québec with a lag of about 90 minutes.",
+    live: "Live",
+    renewableShort: "renewable",
     production: "Generation",
     demand: "Demand",
-    renewable: "Renewable",
-    intensity: "GHG intensity",
-    intensityUnit: "g/kWh",
-    sources: "Sources",
-    lastHours: "Last 48 hours",
-    trade: "Interties",
-    exports: "Exports",
-    imports: "Imports",
+    intensity: "Carbon intensity",
+    intensityUnit: "g CO₂e/kWh",
+    intensityRef: "Natural gas: {g} g/kWh",
+    low: "48 h low",
+    high: "48 h high",
     net: "Net",
-    yearTitle: "2025 mix",
-    yearHint: "Hourly sum over the calendar year, historical dataset.",
-    low: "low",
-    high: "high",
-    retry: "Try again",
-    error: "Could not load the data.",
-    legalTitle: "Sources & legal",
-    scrubHint: "Scrub across chart to inspect",
-    aboutTitle: "About the data",
-    about:
-      "Generation covers Hydro-Québec plants, contracted independent producers, and Churchill Falls. Demand is computed by the system control centre and excludes off-grid networks. GHG intensity is a weighted average of Hydro-Québec lifecycle factors (28 g for hydro, 14 g for wind, 64 g for solar, 608 g for thermal).",
-    delay:
-      "Generation is published on the half hour, with about a 90 minute lag (6 hours for thermal). Demand updates every 15 minutes.",
-    license: "CC BY-NC 4.0 licence. Raw data, no quality guarantee.",
-    sourcesLink: "Hydro-Québec open data",
-    notOfficial: "This is an independent site. It is not a Hydro-Québec product.",
-    easternTime: "Eastern Time",
-    mw: "MW",
-    live: "Live",
     netExporter: "Net exporter",
     netImporter: "Net importer",
     balanced: "Balanced",
-    ultraLowCarbon: "Ultra-low carbon",
+    sources: "Where the power comes from",
+    nowCol: "Now",
+    yearCol: "2025",
+    yearHint: "2025: hourly sum over the calendar year, historical dataset.",
+    total: "Total",
+    lastHours: "Generation and demand, 48 h",
+    scrubHint: "Scrub across chart to inspect",
     surplus: "Surplus",
     deficit: "Deficit",
-    exporting: "Export",
-    importing: "Import",
-    lastUpdate: "Latest reading",
+    trade: "Trade with neighbouring grids",
+    exports: "Exports",
+    imports: "Imports",
+    totalExported: "Total exported",
+    totalImported: "Total imported",
+    importOrigin: "Where imports come from",
+    exporting: "Exporting",
+    importing: "Importing",
+    retry: "Try again",
+    error: "Could not load the data.",
+    aboutTitle: "About the data",
+    about:
+      "Generation covers Hydro-Québec plants, contracted independent producers, and Churchill Falls. Demand is computed by the system control centre and excludes off-grid networks. Carbon intensity is a weighted average of Hydro-Québec lifecycle factors (28 g for hydro, 14 g for wind, 64 g for solar, 608 g for thermal).",
+    delay:
+      "Generation is published on the half hour, with about a 90 minute lag (6 hours for thermal). Demand updates every 15 minutes.",
+    legalTitle: "Sources and legal",
+    license: "CC BY-NC 4.0 licence. Raw data, no quality guarantee.",
+    sourcesLink: "Hydro-Québec open data",
+    notOfficial: "This is an independent site. It is not a Hydro-Québec product.",
+    mw: "MW",
     source: {
       hydro: "Hydro",
       wind: "Wind",

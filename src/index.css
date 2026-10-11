@@ -1,28 +1,49 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Figtree", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --color-paper: #f8f9fa;
-  --color-card: #ffffff;
-  --color-ink: #111827;
-  --color-muted: #64748b;
-  --color-line: #e2e8f0;
-  --color-accent: #0284c7;
-  --color-on-accent: #ffffff;
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --color-paper: #faf9f6;
+  --color-ink: #16181d;
+  --color-muted: #6b6b66;
+  --color-line: #dedbd2;
+  --color-wash: #efede6;
+  --color-accent: #1d4e89;
+  --color-positive: #1f6f4a;
+  --color-caution: #9a5b13;
 }
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-paper: #0f1117;
-  --color-card: #181b24;
-  --color-ink: #f1f5f9;
-  --color-muted: #94a3b8;
-  --color-line: #242938;
-  --color-accent: #38bdf8;
-  --color-on-accent: #0f172a;
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+  --color-paper: #0f1013;
+  --color-ink: #ecebe6;
+  --color-muted: #9a9a94;
+  --color-line: #2b2c31;
+  --color-wash: #1a1b20;
+  --color-accent: #8db6e8;
+  --color-positive: #72c79c;
+  --color-caution: #e0a95e;
+}
+
+/** Small uppercase label used for eyebrows, column heads and metadata. */
+@utility kicker {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/** Large figure with tabular numerals and tight tracking. */
+@utility numeral {
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
 }
 
 html {
@@ -32,6 +53,7 @@ html {
   color-scheme: light;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
@@ -44,4 +66,9 @@ body {
 
 #root {
   min-height: 100dvh;
+}
+
+::selection {
+  background: var(--color-ink);
+  color: var(--color-paper);
 }

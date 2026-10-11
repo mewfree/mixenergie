@@ -1,26 +1,48 @@
-import { useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { MixPayload } from "../../shared/types.ts";
 import type { Locale } from "../i18n.ts";
 import { dict } from "../i18n.ts";
 import { invertCtmX, linePath, nearestIndex, nearestValue, niceScale, sampleTicks, stamp } from "../lib/chart.ts";
 import { formatHqTick, formatMw, formatMwCompact } from "../lib/format.ts";
+import { SectionHeader } from "./share-bars.tsx";
 
 type Props = {
   locale: Locale;
   data: MixPayload;
 };
 
-const W = 640;
-const H = 210;
-const PAD = { t: 14, r: 16, b: 30, l: 40 };
+const FALLBACK_WIDTH = 640;
+const PAD = { t: 12, r: 8, b: 28, l: 40 };
+
+/** Track an element's content width so the SVG renders 1:1 in CSS pixels. */
+function useWidth<T extends HTMLElement>(ready: boolean) {
+  const ref = useRef<T>(null);
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    setWidth(Math.round(el.clientWidth));
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setWidth(Math.round(entry.contentRect.width));
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ready]);
+  return [ref, width] as const;
+}
 
 export function TrendChart({ locale, data }: Props) {
   const t = dict[locale];
   const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<number | null>(null);
+  const hasData = data.series.production.length > 0;
+  const [frameRef, measured] = useWidth<HTMLDivElement>(hasData);
+  const W = measured || FALLBACK_WIDTH;
+  const H = W < 520 ? 180 : 240;
+
   const chart = useMemo(
-    () => layout(data.series.production, data.series.demand),
-    [data.series.production, data.series.demand],
+    () => layout(data.series.production, data.series.demand, W, H),
+    [data.series.production, data.series.demand, W, H],
   );
 
   if (!chart) return null;
@@ -47,189 +69,170 @@ export function TrendChart({ locale, data }: Props) {
   }
 
   return (
-    <section className="rounded-xl border border-line/70 bg-card p-5 sm:p-6 transition-colors">
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
-        <div>
-          <h2 className="text-lg font-bold tracking-tight text-ink sm:text-xl">{t.lastHours}</h2>
-          <p className="mt-0.5 text-xs tabular-nums text-muted">
-            {formatHqTick(active.t, locale)}
-          </p>
-        </div>
+    <section className="border-t border-ink pt-4">
+      <SectionHeader title={t.lastHours} meta={formatHqTick(active.t, locale)} />
 
-        {/* Interactive scrubber HUD */}
-        <div className="flex flex-wrap items-center gap-2 text-xs tabular-nums" aria-live="polite">
-          {active.prod != null ? (
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-line/70 bg-paper/50 px-2.5 py-1">
-              <span className="h-2 w-2 rounded-full bg-accent" />
-              <span className="text-muted">{t.production} :</span>
-              <strong className="font-semibold text-ink">{formatMw(active.prod, locale)} {t.mw}</strong>
-            </span>
-          ) : null}
-          {active.demand != null ? (
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-line/70 bg-paper/50 px-2.5 py-1">
-              <span className="h-2 w-2 rounded-full border border-ink" />
-              <span className="text-muted">{t.demand} :</span>
-              <strong className="font-semibold text-ink">{formatMw(active.demand, locale)} {t.mw}</strong>
-            </span>
-          ) : null}
-          {delta != null ? (
-            <span
-              className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-medium ${
-                delta >= 0
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                  : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-              }`}
-            >
-              {delta >= 0 ? "+" : ""}{formatMw(delta, locale)} {t.mw} ({delta >= 0 ? t.surplus : t.deficit})
-            </span>
-          ) : null}
-        </div>
-      </div>
-
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${W} ${H}`}
-        className="h-48 w-full touch-none cursor-crosshair select-none focus-visible:rounded-lg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 sm:h-56"
-        role="img"
-        tabIndex={0}
-        aria-label={t.lastHours}
-        aria-valuetext={`${formatHqTick(active.t, locale)} ${
-          active.prod != null ? `${t.production} ${formatMw(active.prod, locale)} ${t.mw}` : ""
-        } ${active.demand != null ? `${t.demand} ${formatMw(active.demand, locale)} ${t.mw}` : ""}`.trim()}
-        onPointerDown={(event) => {
-          svgRef.current?.setPointerCapture(event.pointerId);
-          scrub(event.clientX, event.clientY);
-        }}
-        onPointerMove={(event) => {
-          if (event.pointerType !== "mouse" && event.buttons === 0) return;
-          scrub(event.clientX, event.clientY);
-        }}
-        onPointerLeave={(event) => {
-          if (event.pointerType === "mouse") setHover(null);
-        }}
-        onKeyDown={(event) => {
-          const last = chart.points.length - 1;
-          if (event.key === "ArrowLeft") {
-            event.preventDefault();
-            setHover(Math.max(0, activeIndex - 1));
-          } else if (event.key === "ArrowRight") {
-            event.preventDefault();
-            setHover(Math.min(last, activeIndex + 1));
-          } else if (event.key === "Escape") {
-            setHover(null);
-          }
-        }}
+      {/* Legend doubles as the scrubber readout */}
+      <dl
+        className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-1.5 text-sm tabular-nums"
+        aria-live="polite"
       >
-        <defs>
-          <linearGradient id="prodTrendGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.10" />
-            <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0.0" />
-          </linearGradient>
-        </defs>
-
-        {chart.yTicks.map((tick) => (
-          <g key={tick}>
-            <line
-              x1={PAD.l}
-              x2={W - PAD.r}
-              y1={chart.yAt(tick)}
-              y2={chart.yAt(tick)}
-              className="stroke-line/50"
-              strokeWidth="1"
-              strokeDasharray="2 3"
-            />
-            <text
-              x={PAD.l - 8}
-              y={chart.yAt(tick)}
-              textAnchor="end"
-              dominantBaseline="middle"
-              className="fill-muted text-[11px] font-medium"
-            >
-              {formatMwCompact(tick, locale)}
-            </text>
-          </g>
-        ))}
-
-        {chart.xTicks.map((tick, i) => (
-          <text
-            key={`${tick.t}-${i}`}
-            x={tick.x}
-            y={H - 8}
-            textAnchor={i === 0 ? "start" : i === chart.xTicks.length - 1 ? "end" : "middle"}
-            className="fill-muted text-[11px] font-medium"
+        <div className="flex items-center gap-2">
+          <span className="h-0.5 w-5 bg-accent" />
+          <dt className="text-muted">{t.production}</dt>
+          <dd className="font-semibold text-ink">
+            {active.prod != null ? `${formatMw(active.prod, locale)} ${t.mw}` : "—"}
+          </dd>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-5 border-t border-dashed border-ink" />
+          <dt className="text-muted">{t.demand}</dt>
+          <dd className="font-semibold text-ink">
+            {active.demand != null ? `${formatMw(active.demand, locale)} ${t.mw}` : "—"}
+          </dd>
+        </div>
+        {delta != null ? (
+          <div
+            className={`font-medium ${delta >= 0 ? "text-positive" : "text-caution"}`}
           >
-            {formatHqTick(tick.t, locale)}
-          </text>
-        ))}
+            {delta >= 0 ? "+" : "−"}
+            {formatMw(Math.abs(delta), locale)} {t.mw} · {delta >= 0 ? t.surplus : t.deficit}
+          </div>
+        ) : null}
+      </dl>
 
-        {/* Soft production fill */}
-        <path d={chart.prodArea} fill="url(#prodTrendGrad)" />
+      <div ref={frameRef} className="w-full">
+        <svg
+          ref={svgRef}
+          width={W}
+          height={H}
+          viewBox={`0 0 ${W} ${H}`}
+          className="block touch-none cursor-crosshair select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/50"
+          role="img"
+          tabIndex={0}
+          aria-label={t.lastHours}
+          aria-valuetext={`${formatHqTick(active.t, locale)} ${
+            active.prod != null ? `${t.production} ${formatMw(active.prod, locale)} ${t.mw}` : ""
+          } ${active.demand != null ? `${t.demand} ${formatMw(active.demand, locale)} ${t.mw}` : ""}`.trim()}
+          onPointerDown={(event) => {
+            svgRef.current?.setPointerCapture(event.pointerId);
+            scrub(event.clientX, event.clientY);
+          }}
+          onPointerMove={(event) => {
+            if (event.pointerType !== "mouse" && event.buttons === 0) return;
+            scrub(event.clientX, event.clientY);
+          }}
+          onPointerLeave={(event) => {
+            if (event.pointerType === "mouse") setHover(null);
+          }}
+          onKeyDown={(event) => {
+            const last = chart.points.length - 1;
+            if (event.key === "ArrowLeft") {
+              event.preventDefault();
+              setHover(Math.max(0, activeIndex - 1));
+            } else if (event.key === "ArrowRight") {
+              event.preventDefault();
+              setHover(Math.min(last, activeIndex + 1));
+            } else if (event.key === "Escape") {
+              setHover(null);
+            }
+          }}
+        >
+          <defs>
+            <linearGradient id="prodTrendGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.08" />
+              <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
 
-        {/* Production line */}
-        <path
-          d={chart.prodLine}
-          fill="none"
-          className="stroke-accent"
-          strokeWidth="2"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
+          {chart.yTicks.map((tick) => (
+            <g key={tick}>
+              <line
+                x1={PAD.l}
+                x2={W - PAD.r}
+                y1={chart.yAt(tick)}
+                y2={chart.yAt(tick)}
+                className={tick === 0 ? "stroke-ink" : "stroke-line"}
+                strokeWidth="1"
+              />
+              <text
+                x={PAD.l - 8}
+                y={chart.yAt(tick)}
+                textAnchor="end"
+                dominantBaseline="middle"
+                className="fill-muted text-[11px] tabular-nums"
+              >
+                {formatMwCompact(tick, locale)}
+              </text>
+            </g>
+          ))}
 
-        {/* Demand dashed line */}
-        {chart.demandLine ? (
+          {chart.xTicks.map((tick, i) => (
+            <text
+              key={`${tick.t}-${i}`}
+              x={tick.x}
+              y={H - 8}
+              textAnchor={i === 0 ? "start" : i === chart.xTicks.length - 1 ? "end" : "middle"}
+              className="fill-muted text-[11px] tabular-nums"
+            >
+              {formatHqTick(tick.t, locale)}
+            </text>
+          ))}
+
+          <path d={chart.prodArea} fill="url(#prodTrendGrad)" />
+
           <path
-            d={chart.demandLine}
+            d={chart.prodLine}
             fill="none"
-            className="stroke-ink/60"
-            strokeWidth="1.5"
-            strokeDasharray="4 4"
+            className="stroke-accent"
+            strokeWidth="1.75"
             strokeLinejoin="round"
             strokeLinecap="round"
           />
-        ) : null}
 
-        {/* Crosshair indicator */}
-        <line
-          x1={active.x}
-          x2={active.x}
-          y1={PAD.t}
-          y2={H - PAD.b}
-          className="stroke-ink/25"
-          strokeWidth="1"
-          strokeDasharray="2 2"
-        />
+          {chart.demandLine ? (
+            <path
+              d={chart.demandLine}
+              fill="none"
+              className="stroke-ink"
+              strokeWidth="1.25"
+              strokeDasharray="4 3"
+              strokeLinejoin="round"
+            />
+          ) : null}
 
-        {/* Points on crosshair */}
-        {active.prod != null ? (
-          <g>
-            <circle cx={active.x} cy={chart.yAt(active.prod)} r="4" className="fill-accent" />
-            <circle cx={active.x} cy={chart.yAt(active.prod)} r="1.75" fill="#ffffff" />
-          </g>
-        ) : null}
+          <line
+            x1={active.x}
+            x2={active.x}
+            y1={PAD.t}
+            y2={H - PAD.b}
+            className="stroke-ink/40"
+            strokeWidth="1"
+          />
 
-        {active.demand != null ? (
-          <g>
-            <circle cx={active.x} cy={chart.yAt(active.demand)} r="4" className="fill-ink" />
-            <circle cx={active.x} cy={chart.yAt(active.demand)} r="1.75" className="fill-card" />
-          </g>
-        ) : null}
-      </svg>
+          {active.prod != null ? (
+            <circle
+              cx={active.x}
+              cy={chart.yAt(active.prod)}
+              r="4"
+              className="fill-accent stroke-paper"
+              strokeWidth="2"
+            />
+          ) : null}
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-muted">
-        <div className="flex items-center gap-4">
-          <span className="inline-flex items-center gap-1.5 font-medium text-ink">
-            <span className="h-1 w-3.5 rounded-full bg-accent" />
-            {t.production}
-          </span>
-          <span className="inline-flex items-center gap-1.5 font-medium text-ink">
-            <span className="h-0.5 w-3.5 border-t border-dashed border-ink/70" />
-            {t.demand}
-          </span>
-        </div>
-        <p className="text-xs text-muted hidden sm:block">
-          {t.scrubHint}
-        </p>
+          {active.demand != null ? (
+            <circle
+              cx={active.x}
+              cy={chart.yAt(active.demand)}
+              r="4"
+              className="fill-ink stroke-paper"
+              strokeWidth="2"
+            />
+          ) : null}
+        </svg>
       </div>
+
+      <p className="mt-3 hidden text-xs text-muted sm:block">{t.scrubHint}</p>
     </section>
   );
 }
@@ -237,6 +240,8 @@ export function TrendChart({ locale, data }: Props) {
 function layout(
   production: MixPayload["series"]["production"],
   demand: MixPayload["series"]["demand"],
+  W: number,
+  H: number,
 ) {
   if (production.length === 0) return null;
 
@@ -276,7 +281,7 @@ function layout(
     demandLine: demandPts.length ? linePath(demandPts, xAt, yAt) : null,
     yAt,
     yTicks: yScale.ticks,
-    xTicks: sampleTicks(points, 5).map((p) => ({ t: p.t, x: p.x })),
+    xTicks: sampleTicks(points, W < 480 ? 3 : 5).map((p) => ({ t: p.t, x: p.x })),
     points,
     xs: points.map((p) => p.x),
   };

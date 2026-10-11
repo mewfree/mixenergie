@@ -18,53 +18,37 @@ export function Header({ locale, theme, onTheme, onLocale }: Props) {
   const t = dict[locale];
 
   return (
-    <header className="sticky top-0 z-30 border-b border-line/60 bg-paper/85 backdrop-blur-md transition-colors">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <a
-          href={locale === "en" ? "/en" : "/"}
-          className="group flex items-center gap-2.5 transition-opacity hover:opacity-90 active:scale-[0.99]"
-        >
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-paper dark:bg-card dark:text-ink dark:border dark:border-line">
-            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-              <path
-                fill="currentColor"
-                d="M13.2 2.4 6 13.1h5.1l-1.4 8.5 8.4-12.2h-5.2z"
-              />
-            </svg>
+    <header className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
+        <a href={locale === "en" ? "/en" : "/"} className="flex items-baseline">
+          <span className="text-lg font-semibold tracking-tight text-ink">
+            {t.title}
           </span>
-          <div className="flex items-center gap-2.5">
-            <span className="text-base font-bold tracking-tight text-ink sm:text-lg">{t.title}</span>
-            <span className="hidden items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 sm:inline-flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              {t.live}
-            </span>
-          </div>
         </a>
 
-        <div className="flex items-center gap-2">
-          {/* Segmented language toggle */}
-          <div className="inline-flex rounded-lg border border-line bg-card p-0.5 text-xs font-medium">
+        <div className="flex items-center gap-5">
+          <div className="flex items-center gap-3 text-xs font-semibold tracking-wide">
             {LOCALES.map(({ code, label, name }) => (
               <button
                 key={code}
                 type="button"
                 onClick={() => onLocale(code)}
-                className={`cursor-pointer rounded-md px-2.5 py-1 transition-colors ${
-                  locale === code
-                    ? "bg-ink text-paper font-semibold dark:bg-line dark:text-ink"
-                    : "text-muted hover:text-ink"
-                }`}
                 aria-label={name}
+                aria-pressed={locale === code}
+                className={`cursor-pointer border-b-2 pb-0.5 transition-colors ${
+                  locale === code
+                    ? "border-ink text-ink"
+                    : "border-transparent text-muted hover:text-ink"
+                }`}
               >
                 {label}
               </button>
             ))}
           </div>
 
-          {/* Theme switcher */}
           <button
             type="button"
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-line bg-card text-muted transition-colors hover:text-ink"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center text-muted transition-colors hover:text-ink"
             onClick={() => onTheme(theme === "dark" ? "light" : "dark")}
             aria-label={theme === "dark" ? "Light theme" : "Dark theme"}
           >

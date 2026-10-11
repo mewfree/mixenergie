@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
-import { pct } from "../../shared/mix.ts";
+import { LCA_G_PER_KWH, pct } from "../../shared/mix.ts";
 import type { MixPayload } from "../../shared/types.ts";
 import type { Locale } from "../i18n.ts";
 import { dict } from "../i18n.ts";
-import { formatG, formatHqStamp, formatMw, formatPct } from "../lib/format.ts";
+import { formatG, formatMw, formatSignedMw } from "../lib/format.ts";
 
 type Props = {
   locale: Locale;
@@ -12,86 +12,85 @@ type Props = {
 
 function StatCard({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <article className="rounded-xl border border-line/70 bg-card p-4 transition-colors hover:border-line sm:p-5">
-      <p className="text-xs font-medium text-muted sm:text-sm">{label}</p>
+    <article className="border-t border-ink pt-3">
+      <p className="kicker">{label}</p>
       {children}
     </article>
   );
 }
 
-const VALUE = "mt-2 flex items-baseline gap-1.5 text-2xl font-bold tabular-nums tracking-tight sm:text-3xl";
+const VALUE = "numeral mt-3 flex items-baseline gap-1.5 text-3xl leading-none sm:text-4xl";
+const UNIT = "text-xs font-normal tracking-normal text-muted";
+const SUB = "mt-3 text-sm text-muted";
 
 export function StatGrid({ locale, data }: Props) {
   const t = dict[locale];
-  const demand = data.demand;
-  const prod = data.production;
+  const { demand, production: prod, trade } = data;
 
   const demandRangePct =
     demand && demand.high > demand.low
       ? Math.min(100, Math.max(0, pct(demand.mw - demand.low, demand.high - demand.low)))
       : null;
 
+  const netLabel = !trade
+    ? null
+    : trade.net > 0
+      ? t.netExporter
+      : trade.net < 0
+        ? t.netImporter
+        : t.balanced;
+
   return (
-    <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+    <section className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
       <StatCard label={t.production}>
-        <p className={`${VALUE} text-ink`}>
+        <p className={VALUE}>
           {formatMw(prod.total, locale)}
-          <span className="text-xs font-normal text-muted sm:text-sm">{t.mw}</span>
+          <span className={UNIT}>{t.mw}</span>
         </p>
-        <p className="mt-2 text-xs text-muted truncate" title={formatHqStamp(prod.at, locale)}>
-          {formatHqStamp(prod.at, locale)}
+        <p className={SUB}>
+          {formatMw(prod.renewableMw, locale)} {t.mw} {t.renewableShort}
         </p>
       </StatCard>
 
       <StatCard label={t.demand}>
-        <p className={`${VALUE} text-ink`}>
+        <p className={VALUE}>
           {demand ? formatMw(demand.mw, locale) : "—"}
-          {demand ? <span className="text-xs font-normal text-muted sm:text-sm">{t.mw}</span> : null}
+          {demand ? <span className={UNIT}>{t.mw}</span> : null}
         </p>
         {demand && demandRangePct != null ? (
-          <div className="mt-2">
-            <div className="flex items-center justify-between text-[11px] tabular-nums text-muted">
-              <span>{t.low} {formatMw(demand.low, locale)}</span>
-              <span>{t.high} {formatMw(demand.high, locale)}</span>
-            </div>
-            <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-paper">
-              <div
-                className="h-full rounded-full bg-muted/80 transition-all duration-300"
-                style={{ width: `${demandRangePct}%` }}
+          <div className="mt-3">
+            <div className="relative h-px w-full bg-line">
+              <span
+                className="absolute -top-[3px] h-[7px] w-0.5 -translate-x-1/2 bg-ink"
+                style={{ left: `${demandRangePct}%` }}
               />
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-2 text-xs tabular-nums text-muted">
+              <span>{formatMw(demand.low, locale)}</span>
+              <span>{formatMw(demand.high, locale)}</span>
             </div>
           </div>
         ) : (
-          <p className="mt-2 text-xs text-muted">{t.easternTime}</p>
+          <p className={SUB}>{t.easternTime}</p>
         )}
       </StatCard>
 
-      <StatCard label={t.renewable}>
-        <p className={`${VALUE} text-emerald-600 dark:text-emerald-400`}>
-          {formatPct(prod.renewablePct, locale)}
+      <StatCard label={t.intensity}>
+        <p className={VALUE}>
+          {formatG(prod.intensity, locale)}
+          <span className={UNIT}>{t.intensityUnit}</span>
         </p>
-        <div className="mt-2">
-          <div className="h-1 w-full overflow-hidden rounded-full bg-paper">
-            <div
-              className="h-full rounded-full bg-emerald-500 transition-all duration-300"
-              style={{ width: `${Math.min(prod.renewablePct, 100)}%` }}
-            />
-          </div>
-          <p className="mt-1 text-xs text-muted truncate">
-            {formatMw(prod.renewableMw, locale)} {t.mw}
-          </p>
-        </div>
+        <p className={SUB}>
+          {t.intensityRef.replace("{g}", formatG(LCA_G_PER_KWH.thermal, locale))}
+        </p>
       </StatCard>
 
-      <StatCard label={t.intensity}>
-        <p className={`${VALUE} text-ink`}>
-          {formatG(prod.intensity, locale)}
-          <span className="text-xs font-normal text-muted sm:text-sm">{t.intensityUnit}</span>
+      <StatCard label={t.net}>
+        <p className={VALUE}>
+          {trade ? formatSignedMw(trade.net, locale) : "—"}
+          {trade ? <span className={UNIT}>{t.mw}</span> : null}
         </p>
-        <div className="mt-2 flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-          <p className="text-xs text-muted truncate">{t.ultraLowCarbon}</p>
-        </div>
+        <p className={SUB}>{netLabel ?? t.easternTime}</p>
       </StatCard>
     </section>
   );

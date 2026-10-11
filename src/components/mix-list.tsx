@@ -3,32 +3,35 @@ import { SOURCE_KEYS, type MixPayload } from "../../shared/types.ts";
 import type { Locale } from "../i18n.ts";
 import { dict } from "../i18n.ts";
 import { SOURCE_COLOR } from "../lib/colors.ts";
-import { formatHqStamp, formatMw, formatPct } from "../lib/format.ts";
-import { MiniBar, SegmentBar } from "./share-bars.tsx";
+import { formatMw, formatPct } from "../lib/format.ts";
+import { SectionHeader, SegmentBar, Swatch } from "./share-bars.tsx";
 
 type Props = {
   locale: Locale;
   data: MixPayload;
 };
 
+/** Current generation mix, with the 2025 annual mix alongside for context. */
 export function MixList({ locale, data }: Props) {
   const t = dict[locale];
   const { sources, total } = data.production;
+  const year = data.year;
+  const columns = year ? "grid-cols-[1fr_6.5rem_4.5rem]" : "grid-cols-[1fr_6.5rem]";
 
   return (
-    <section className="rounded-xl border border-line/70 bg-card p-5 sm:p-6 transition-colors">
-      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-bold tracking-tight text-ink sm:text-xl">{t.sources}</h2>
-          <p className="mt-0.5 text-xs text-muted">{formatHqStamp(data.production.at, locale)}</p>
-        </div>
-        <span className="rounded-md border border-line/70 bg-paper/60 px-2.5 py-1 text-xs tabular-nums text-muted sm:text-sm font-medium">
-          Total : <strong className="font-semibold text-ink">{formatMw(total, locale)} {t.mw}</strong>
-        </span>
-      </div>
+    <section className="border-t border-ink pt-4">
+      <SectionHeader
+        title={t.sources}
+        aside={
+          <p className="text-sm tabular-nums text-muted">
+            {t.total}{" "}
+            <span className="numeral text-base text-ink">{formatMw(total, locale)}</span> {t.mw}
+          </p>
+        }
+      />
 
       <SegmentBar
-        className="mb-5 h-2.5"
+        className="mb-5 h-3"
         segments={SOURCE_KEYS.map((key) => {
           const share = pct(sources[key], total);
           return {
@@ -40,43 +43,43 @@ export function MixList({ locale, data }: Props) {
         })}
       />
 
-      {/* Sources list */}
-      <ul className="divide-y divide-line/40">
+      <div className={`grid items-end gap-x-4 border-b border-line pb-2 ${columns}`}>
+        <span />
+        <span className="kicker text-right">{t.nowCol}</span>
+        {year ? <span className="kicker text-right">{t.yearCol}</span> : null}
+      </div>
+
+      <ul className="divide-y divide-line">
         {SOURCE_KEYS.map((key) => {
           const mw = sources[key];
-          const share = pct(mw, total);
           return (
-            <li
-              key={key}
-              className="flex items-center justify-between gap-3 py-2.5 transition-colors hover:bg-paper/40 -mx-2 px-2 rounded-lg"
-            >
-              <div className="min-w-0 pr-2">
-                <div className="flex items-center gap-2 text-sm sm:text-base font-medium text-ink">
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ background: SOURCE_COLOR[key] }}
-                  />
-                  <span className="truncate">{t.source[key]}</span>
+            <li key={key} className={`grid items-center gap-x-4 py-3 ${columns}`}>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2.5 text-[15px] font-medium text-ink">
+                  <Swatch color={SOURCE_COLOR[key]} />
+                  {t.source[key]}
                 </div>
-                <p className="mt-0.5 pl-4.5 text-xs text-muted truncate">
-                  {t.sourceHint[key]}
+                <p className="mt-0.5 hidden pl-5 text-xs leading-snug text-muted sm:block">{t.sourceHint[key]}</p>
+              </div>
+              <div className="text-right tabular-nums">
+                <p className="text-[15px] font-semibold text-ink">
+                  {formatPct(pct(mw, total), locale)}
+                </p>
+                <p className="text-xs text-muted">
+                  {formatMw(mw, locale)} {t.mw}
                 </p>
               </div>
-              <div className="flex shrink-0 items-center gap-3 sm:gap-5">
-                <MiniBar share={share} color={SOURCE_COLOR[key]} />
-                <div className="text-right tabular-nums">
-                  <span className="text-sm font-bold text-ink sm:text-base">
-                    {formatPct(share, locale)}
-                  </span>
-                  <span className="ml-2 inline-block text-xs text-muted sm:ml-3 sm:text-sm">
-                    {formatMw(mw, locale)} {t.mw}
-                  </span>
-                </div>
-              </div>
+              {year ? (
+                <p className="text-right text-[15px] tabular-nums text-muted">
+                  {formatPct(pct(year.sources[key], year.totalMwh), locale)}
+                </p>
+              ) : null}
             </li>
           );
         })}
       </ul>
+
+      {year ? <p className="mt-3 text-xs text-muted">{t.yearHint}</p> : null}
     </section>
   );
 }
