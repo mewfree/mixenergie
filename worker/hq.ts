@@ -1,5 +1,6 @@
 import {
   intensityGPerKwh,
+  isImportFuelKey,
   latestFilled,
   marketNet,
   mergeImportFuels,
@@ -14,7 +15,6 @@ import {
 import type {
   DemandPoint,
   ImportFuel,
-  ImportFuelKey,
   MarketFlow,
   MarketKey,
   MixPayload,
@@ -40,23 +40,6 @@ const MARKET_FROM_HQ: Record<string, MarketKey> = {
   NewYork: "newyork",
   NewEngland: "newengland",
   NewBrunswick: "newbrunswick",
-};
-
-const IMPORT_FUEL_FROM_HQ: Record<string, ImportFuelKey> = {
-  hydro: "hydro",
-  wind: "wind",
-  solar: "solar",
-  nuclear: "nuclear",
-  gas: "gas",
-  biomass: "biomass",
-  other: "other",
-  unknown: "unknown",
-};
-
-type HqSeries<T> = {
-  recentHour?: unknown;
-  indexDonneePlusRecent?: unknown;
-  details?: T[];
 };
 
 type HqProductionRow = {
@@ -110,11 +93,15 @@ function asString(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+/** HQ wraps every series in `{ details: [...] }`. */
+function details<T>(raw: unknown): T[] {
+  const rows = (raw as { details?: unknown } | null)?.details;
+  return Array.isArray(rows) ? rows : [];
+}
+
 function productionPoints(raw: unknown): ProductionPoint[] {
-  const details = (raw as HqSeries<HqProductionRow> | null)?.details;
-  if (!Array.isArray(details)) return [];
   const points: ProductionPoint[] = [];
-  for (const row of details) {
+  for (const row of details<HqProductionRow>(raw)) {
     const t = asString(row.date);
     const valeurs = row.valeurs ?? {};
     const total = num(valeurs.total);
@@ -126,10 +113,8 @@ function productionPoints(raw: unknown): ProductionPoint[] {
 }
 
 function demandPoints(raw: unknown): DemandPoint[] {
-  const details = (raw as HqSeries<HqDemandRow> | null)?.details;
-  if (!Array.isArray(details)) return [];
   const points: DemandPoint[] = [];
-  for (const row of details) {
+  for (const row of details<HqDemandRow>(raw)) {
     const t = asString(row.date);
     const mw = num(row.valeurs?.demandeTotal);
     if (!t || mw <= 0) continue;
@@ -143,19 +128,15 @@ function parseImportFuels(bag: Record<string, unknown> | undefined): ImportFuel[
   const fuels: ImportFuel[] = [];
   for (const [rawKey, rawValue] of Object.entries(bag)) {
     if (rawKey === "total") continue;
-    const key = IMPORT_FUEL_FROM_HQ[rawKey];
-    if (!key) continue;
+    if (!isImportFuelKey(rawKey)) continue;
     const mw = num(rawValue);
-    if (mw > 0.05) fuels.push({ key, mw });
+    if (mw > 0.05) fuels.push({ key: rawKey, mw });
   }
   return fuels;
 }
 
 function parseTrade(raw: unknown): MixPayload["trade"] {
-  const details = (raw as { details?: HqTradeRow[] } | null)?.details;
-  if (!Array.isArray(details)) return null;
-
-  const row = latestFilled(details, (item) => {
+  const row = latestFilled(details<HqTradeRow>(raw), (item) => {
     const exports = item.Exportations ?? {};
     const imports = item.Importations_Sources ?? {};
     const exportTotal = num(exports.total);
@@ -176,15 +157,14 @@ function parseTrade(raw: unknown): MixPayload["trade"] {
   let importTotal = 0;
 
   for (const [hqKey, marketKey] of Object.entries(MARKET_FROM_HQ)) {
-    const signed = num(row.Exportations?.[hqKey]);
-    const fromSign = marketNet(signed);
-    const listedImport = num(row.Importations_Sources?.[hqKey]?.total);
-    const exportMw = fromSign.exportMw;
-    const importMw = listedImport > 0 ? listedImport : fromSign.importMw;
-    exportTotal += exportMw;
+    const imports = row.Importations_Sources?.[hqKey];
+    const net = marketNet(num(row.Exportations?.[hqKey]));
+    const listedImport = num(imports?.total);
+    const importMw = listedImport > 0 ? listedImport : net.importMw;
+    exportTotal += net.exportMw;
     importTotal += importMw;
-    markets.push({ key: marketKey, exportMw, importMw });
-    fuelGroups.push(parseImportFuels(row.Importations_Sources?.[hqKey]));
+    markets.push({ key: marketKey, exportMw: net.exportMw, importMw });
+    fuelGroups.push(parseImportFuels(imports));
   }
 
   return {
@@ -233,22 +213,14 @@ export async function loadMix(year: YearMix | null): Promise<MixPayload> {
     throw new Error("no production data");
   }
 
-  const sources: SourceMw = {
-    hydro: current.hydro,
-    wind: current.wind,
-    other: current.other,
-    solar: current.solar,
-    thermal: current.thermal,
-  };
-  const total = current.total || sourceTotal(sources);
+  const { t: productionAt, total, ...sources } = current;
   const demandNow = latestFilled(demandSeries, (d) => d.mw > 0);
-  const demandValues = demandSeries.map((d) => d.mw);
 
   return {
     fetchedAt: new Date().toISOString(),
     timezone: "America/Toronto",
     production: {
-      at: current.t,
+      at: productionAt,
       total,
       sources,
       renewableMw: renewableMw(sources),
@@ -259,7 +231,7 @@ export async function loadMix(year: YearMix | null): Promise<MixPayload> {
       ? {
           at: demandNow.t,
           mw: demandNow.mw,
-          ...stats(demandValues),
+          ...stats(demandSeries.map((d) => d.mw)),
         }
       : null,
     trade: parseTrade(tradeRaw),

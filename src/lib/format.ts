@@ -1,67 +1,80 @@
 import type { Locale } from "../i18n.ts";
 
-const localeTag = (locale: Locale) => (locale === "fr" ? "fr-CA" : "en-CA");
+const TAGS: Record<Locale, string> = { fr: "fr-CA", en: "en-CA" };
 
-export function formatMw(value: number, locale: Locale, digits = 0): string {
-  return new Intl.NumberFormat(localeTag(locale), {
-    maximumFractionDigits: digits,
-    minimumFractionDigits: digits,
-  }).format(Math.round(value * 10 ** digits) / 10 ** digits);
+/** Intl formatters are costly to construct; build each one once per locale. */
+function perLocale<T>(make: (tag: string) => T): Record<Locale, T> {
+  return { fr: make(TAGS.fr), en: make(TAGS.en) };
 }
+
+const integer = perLocale((tag) => new Intl.NumberFormat(tag, { maximumFractionDigits: 0 }));
+const percentWhole = perLocale(
+  (tag) => new Intl.NumberFormat(tag, { maximumFractionDigits: 1, minimumFractionDigits: 0 }),
+);
+const percentTenths = perLocale(
+  (tag) => new Intl.NumberFormat(tag, { maximumFractionDigits: 1, minimumFractionDigits: 1 }),
+);
+const compact = perLocale(
+  (tag) =>
+    new Intl.NumberFormat(tag, {
+      notation: "compact",
+      compactDisplay: "short",
+      maximumFractionDigits: 0,
+    }),
+);
+const monthName = perLocale(
+  (tag) => new Intl.DateTimeFormat(tag, { month: "long", timeZone: "UTC" }),
+);
+
+const STAMP = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/;
+
+/** Splits an HQ Eastern wall-clock stamp ("2026-08-15T10:45:00") into its parts. */
+export function parseHqStamp(value: string) {
+  const match = STAMP.exec(value);
+  if (!match) return null;
+  const [, year = "", month = "", day = "", hour = "", minute = ""] = match;
+  return { year, month, day, hour, minute };
+}
+
+export function formatMw(value: number, locale: Locale): string {
+  return integer[locale].format(value);
+}
+
+export const formatG = formatMw;
 
 export function formatPct(value: number, locale: Locale): string {
   if (value > 0 && value < 0.05) return locale === "fr" ? "< 0,1 %" : "< 0.1%";
-  return new Intl.NumberFormat(localeTag(locale), {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: value >= 10 ? 0 : 1,
-  }).format(value) + (locale === "fr" ? " %" : "%");
-}
-
-export function formatG(value: number, locale: Locale): string {
-  return new Intl.NumberFormat(localeTag(locale), {
-    maximumFractionDigits: 0,
-  }).format(value);
+  const format = value >= 10 ? percentWhole : percentTenths;
+  return format[locale].format(value) + (locale === "fr" ? " %" : "%");
 }
 
 export function formatHqStamp(value: string, locale: Locale): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
-  if (!match) return value;
-  const [, year, month, day, hour, minute] = match;
-  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
-  const monthName = new Intl.DateTimeFormat(localeTag(locale), {
-    month: "long",
-    timeZone: "UTC",
-  }).format(date);
+  const p = parseHqStamp(value);
+  if (!p) return value;
+  const month = monthName[locale].format(new Date(Date.UTC(Number(p.year), Number(p.month) - 1)));
   if (locale === "fr") {
-    return `${Number(day)} ${monthName} ${year}, ${Number(hour)} h ${minute}`;
+    return `${Number(p.day)} ${month} ${p.year}, ${Number(p.hour)} h ${p.minute}`;
   }
-  return `${monthName} ${Number(day)}, ${year}, ${hour}:${minute}`;
+  return `${month} ${Number(p.day)}, ${p.year}, ${p.hour}:${p.minute}`;
 }
 
 export function formatHqHour(value: string, locale: Locale): string {
-  const match = /T(\d{2}):(\d{2})/.exec(value);
-  if (!match) return value;
-  const [, hour, minute] = match;
-  if (locale === "fr") return `${Number(hour)} h ${minute}`;
-  return `${hour}:${minute}`;
+  const p = parseHqStamp(value);
+  if (!p) return value;
+  return locale === "fr" ? `${Number(p.hour)} h ${p.minute}` : `${p.hour}:${p.minute}`;
 }
 
 export function formatHqTick(value: string, locale: Locale): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})T/.exec(value);
-  if (!match) return formatHqHour(value, locale);
-  const [, , month, day] = match;
+  const p = parseHqStamp(value);
+  if (!p) return value;
   const time = formatHqHour(value, locale);
-  if (locale === "fr") return `${Number(day)}/${month} ${time}`;
-  return `${Number(month)}/${Number(day)} ${time}`;
+  if (locale === "fr") return `${Number(p.day)}/${p.month} ${time}`;
+  return `${Number(p.month)}/${Number(p.day)} ${time}`;
 }
 
 export function formatMwCompact(value: number, locale: Locale): string {
   if (value === 0) return "0";
-  return new Intl.NumberFormat(localeTag(locale), {
-    notation: "compact",
-    compactDisplay: "short",
-    maximumFractionDigits: 0,
-  }).format(value);
+  return compact[locale].format(value);
 }
 
 export function formatSignedMw(value: number, locale: Locale): string {

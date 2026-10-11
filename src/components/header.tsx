@@ -2,6 +2,11 @@ import type { Locale } from "../i18n.ts";
 import { dict } from "../i18n.ts";
 import type { Theme } from "../lib/theme.ts";
 
+const LOCALES: { code: Locale; label: string; name: string }[] = [
+  { code: "fr", label: "FR", name: "Français" },
+  { code: "en", label: "EN", name: "English" },
+];
+
 type Props = {
   locale: Locale;
   theme: Theme;
@@ -39,30 +44,21 @@ export function Header({ locale, theme, onTheme, onLocale }: Props) {
         <div className="flex items-center gap-2">
           {/* Segmented language toggle */}
           <div className="inline-flex rounded-lg border border-line bg-card p-0.5 text-xs font-medium">
-            <button
-              type="button"
-              onClick={() => onLocale("fr")}
-              className={`cursor-pointer rounded-md px-2.5 py-1 transition-colors ${
-                locale === "fr"
-                  ? "bg-ink text-paper font-semibold dark:bg-line dark:text-ink"
-                  : "text-muted hover:text-ink"
-              }`}
-              aria-label="Français"
-            >
-              FR
-            </button>
-            <button
-              type="button"
-              onClick={() => onLocale("en")}
-              className={`cursor-pointer rounded-md px-2.5 py-1 transition-colors ${
-                locale === "en"
-                  ? "bg-ink text-paper font-semibold dark:bg-line dark:text-ink"
-                  : "text-muted hover:text-ink"
-              }`}
-              aria-label="English"
-            >
-              EN
-            </button>
+            {LOCALES.map(({ code, label, name }) => (
+              <button
+                key={code}
+                type="button"
+                onClick={() => onLocale(code)}
+                className={`cursor-pointer rounded-md px-2.5 py-1 transition-colors ${
+                  locale === code
+                    ? "bg-ink text-paper font-semibold dark:bg-line dark:text-ink"
+                    : "text-muted hover:text-ink"
+                }`}
+                aria-label={name}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           {/* Theme switcher */}

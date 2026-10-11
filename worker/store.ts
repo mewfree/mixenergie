@@ -1,5 +1,5 @@
 import {
-  cacheState,
+  cacheAge,
   DEMAND_INTERVAL_MS,
   hqDataAgeMs,
   KV_LOCK,
@@ -15,6 +15,7 @@ import {
 } from "../shared/cache.ts";
 import type { MixPayload, YearMix } from "../shared/types.ts";
 import { loadMix, loadYear } from "./hq.ts";
+import { logError } from "./log.ts";
 
 type SnapshotMeta = { storedAt: number };
 type YearRecord = { storedAt: number; year: YearMix };
@@ -81,7 +82,7 @@ async function acquireLock(env: Env): Promise<boolean> {
 
 async function resolveYear(env: Env): Promise<YearMix | null> {
   const cached = await readYear(env);
-  if (cached && cacheState(cached.storedAt, YEAR_FRESH_MS, YEAR_TTL_SECONDS * 1000) === "fresh") {
+  if (cached && cacheAge(cached.storedAt) < YEAR_FRESH_MS) {
     return cached.year;
   }
 
@@ -96,39 +97,32 @@ async function resolveYear(env: Env): Promise<YearMix | null> {
 export async function refreshMix(env: Env): Promise<MixPayload> {
   const year = await resolveYear(env);
   const payload = await loadMix(year);
-  const storedAt = Date.now();
-  await writeSnapshot(env, payload, storedAt);
+  await writeSnapshot(env, payload, Date.now());
   return payload;
+}
+
+function ageSeconds(storedAt: number): number {
+  return Math.round(cacheAge(storedAt) / 1000);
 }
 
 export async function serveMix(env: Env, ctx: ExecutionContext): Promise<MixResult> {
   const cached = await readSnapshot(env);
   if (cached) {
     const state = snapshotCacheState(cached.storedAt, cached.payload.demand?.at);
-    const ageSeconds = Math.round((Date.now() - cached.storedAt) / 1000);
+    const age = ageSeconds(cached.storedAt);
     if (state === "fresh") {
-      return { payload: cached.payload, state, ageSeconds };
+      return { payload: cached.payload, state, ageSeconds: age };
     }
     if (state === "stale") {
-      try {
-        const demandAge = cached.payload.demand
-          ? hqDataAgeMs(cached.payload.demand.at)
-          : 0;
-        if (demandAge >= 2 * DEMAND_INTERVAL_MS) {
-          const fresh = await refreshIfUnlocked(env);
-          if (fresh) return { payload: fresh, state: "miss", ageSeconds: 0 };
-        } else {
-          ctx.waitUntil(refreshIfUnlocked(env));
-        }
-      } catch (error) {
-        console.error(
-          JSON.stringify({
-            message: "stale mix refresh failed",
-            error: error instanceof Error ? error.message : String(error),
-          }),
-        );
+      const demandAge = cached.payload.demand ? hqDataAgeMs(cached.payload.demand.at) : 0;
+      if (demandAge >= 2 * DEMAND_INTERVAL_MS) {
+        // Data is badly out of date: wait for a refresh instead of serving it.
+        const fresh = await refreshIfUnlocked(env);
+        if (fresh) return { payload: fresh, state: "miss", ageSeconds: 0 };
+      } else {
+        ctx.waitUntil(refreshIfUnlocked(env));
       }
-      return { payload: cached.payload, state, ageSeconds };
+      return { payload: cached.payload, state, ageSeconds: age };
     }
   }
 
@@ -136,14 +130,12 @@ export async function serveMix(env: Env, ctx: ExecutionContext): Promise<MixResu
     const payload = await refreshMix(env);
     return { payload, state: "miss", ageSeconds: 0 };
   } catch (error) {
-    if (cached) {
-      return {
-        payload: cached.payload,
-        state: "stale",
-        ageSeconds: Math.round((Date.now() - cached.storedAt) / 1000),
-      };
-    }
-    throw error;
+    if (!cached) throw error;
+    return {
+      payload: cached.payload,
+      state: "stale",
+      ageSeconds: ageSeconds(cached.storedAt),
+    };
   }
 }
 
@@ -154,12 +146,7 @@ async function refreshIfUnlocked(env: Env): Promise<MixPayload | null> {
     if (!locked) return null;
     return await refreshMix(env);
   } catch (error) {
-    console.error(
-      JSON.stringify({
-        message: "background mix refresh failed",
-        error: error instanceof Error ? error.message : String(error),
-      }),
-    );
+    logError("background mix refresh failed", error);
     return null;
   } finally {
     if (locked) {

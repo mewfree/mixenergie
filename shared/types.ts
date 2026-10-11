@@ -96,7 +96,3 @@ export type MixPayload = {
     demandDelay: string;
   };
 };
-
-export type MixError = {
-  error: string;
-};

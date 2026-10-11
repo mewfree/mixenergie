@@ -18,9 +18,7 @@ export function SiteFooter({ locale }: { locale: Locale }) {
 
           {/* Column 2: Sources, License, Disclaimer */}
           <div className="space-y-2.5 text-sm leading-relaxed text-muted">
-            <h2 className="font-bold tracking-tight text-ink">
-              {locale === "fr" ? "Sources & mentions" : "Sources & legal"}
-            </h2>
+            <h2 className="font-bold tracking-tight text-ink">{t.legalTitle}</h2>
             <p className="text-xs sm:text-sm">
               <a
                 className="group inline-flex items-center gap-1 font-medium text-ink underline decoration-line underline-offset-4 hover:decoration-ink"

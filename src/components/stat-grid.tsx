@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+import { pct } from "../../shared/mix.ts";
 import type { MixPayload } from "../../shared/types.ts";
 import type { Locale } from "../i18n.ts";
 import { dict } from "../i18n.ts";
@@ -8,6 +10,17 @@ type Props = {
   data: MixPayload;
 };
 
+function StatCard({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <article className="rounded-xl border border-line/70 bg-card p-4 transition-colors hover:border-line sm:p-5">
+      <p className="text-xs font-medium text-muted sm:text-sm">{label}</p>
+      {children}
+    </article>
+  );
+}
+
+const VALUE = "mt-2 flex items-baseline gap-1.5 text-2xl font-bold tabular-nums tracking-tight sm:text-3xl";
+
 export function StatGrid({ locale, data }: Props) {
   const t = dict[locale];
   const demand = data.demand;
@@ -15,34 +28,23 @@ export function StatGrid({ locale, data }: Props) {
 
   const demandRangePct =
     demand && demand.high > demand.low
-      ? Math.min(
-          100,
-          Math.max(0, ((demand.mw - demand.low) / (demand.high - demand.low)) * 100),
-        )
+      ? Math.min(100, Math.max(0, pct(demand.mw - demand.low, demand.high - demand.low)))
       : null;
 
   return (
     <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-      {/* Production */}
-      <article className="rounded-xl border border-line/70 bg-card p-4 transition-colors hover:border-line sm:p-5">
-        <p className="text-xs font-medium text-muted sm:text-sm">
-          {t.production}
-        </p>
-        <p className="mt-2 flex items-baseline gap-1.5 text-2xl font-bold tabular-nums tracking-tight text-ink sm:text-3xl">
+      <StatCard label={t.production}>
+        <p className={`${VALUE} text-ink`}>
           {formatMw(prod.total, locale)}
           <span className="text-xs font-normal text-muted sm:text-sm">{t.mw}</span>
         </p>
         <p className="mt-2 text-xs text-muted truncate" title={formatHqStamp(prod.at, locale)}>
           {formatHqStamp(prod.at, locale)}
         </p>
-      </article>
+      </StatCard>
 
-      {/* Demand */}
-      <article className="rounded-xl border border-line/70 bg-card p-4 transition-colors hover:border-line sm:p-5">
-        <p className="text-xs font-medium text-muted sm:text-sm">
-          {t.demand}
-        </p>
-        <p className="mt-2 flex items-baseline gap-1.5 text-2xl font-bold tabular-nums tracking-tight text-ink sm:text-3xl">
+      <StatCard label={t.demand}>
+        <p className={`${VALUE} text-ink`}>
           {demand ? formatMw(demand.mw, locale) : "—"}
           {demand ? <span className="text-xs font-normal text-muted sm:text-sm">{t.mw}</span> : null}
         </p>
@@ -62,14 +64,10 @@ export function StatGrid({ locale, data }: Props) {
         ) : (
           <p className="mt-2 text-xs text-muted">{t.easternTime}</p>
         )}
-      </article>
+      </StatCard>
 
-      {/* Renewable */}
-      <article className="rounded-xl border border-line/70 bg-card p-4 transition-colors hover:border-line sm:p-5">
-        <p className="text-xs font-medium text-muted sm:text-sm">
-          {t.renewable}
-        </p>
-        <p className="mt-2 flex items-baseline gap-1 text-2xl font-bold tabular-nums tracking-tight text-emerald-600 dark:text-emerald-400 sm:text-3xl">
+      <StatCard label={t.renewable}>
+        <p className={`${VALUE} text-emerald-600 dark:text-emerald-400`}>
           {formatPct(prod.renewablePct, locale)}
         </p>
         <div className="mt-2">
@@ -83,24 +81,18 @@ export function StatGrid({ locale, data }: Props) {
             {formatMw(prod.renewableMw, locale)} {t.mw}
           </p>
         </div>
-      </article>
+      </StatCard>
 
-      {/* GHG Intensity */}
-      <article className="rounded-xl border border-line/70 bg-card p-4 transition-colors hover:border-line sm:p-5">
-        <p className="text-xs font-medium text-muted sm:text-sm">
-          {t.intensity}
-        </p>
-        <p className="mt-2 flex items-baseline gap-1.5 text-2xl font-bold tabular-nums tracking-tight text-ink sm:text-3xl">
+      <StatCard label={t.intensity}>
+        <p className={`${VALUE} text-ink`}>
           {formatG(prod.intensity, locale)}
           <span className="text-xs font-normal text-muted sm:text-sm">{t.intensityUnit}</span>
         </p>
         <div className="mt-2 flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-          <p className="text-xs text-muted truncate">
-            {t.ultraLowCarbon}
-          </p>
+          <p className="text-xs text-muted truncate">{t.ultraLowCarbon}</p>
         </div>
-      </article>
+      </StatCard>
     </section>
   );
 }

@@ -11,16 +11,13 @@ import { dict, localeFromPath, pathForLocale, type Locale } from "./i18n.ts";
 import { formatHqStamp } from "./lib/format.ts";
 import { applyTheme, readTheme, type Theme } from "./lib/theme.ts";
 
+const REFRESH_MS = 60_000;
+
 export function App() {
-  const [locale, setLocale] = useState<Locale>(() =>
-    typeof window === "undefined" ? "fr" : localeFromPath(window.location.pathname),
-  );
-  const [theme, setTheme] = useState<Theme>(() =>
-    typeof window === "undefined" ? "light" : readTheme(),
-  );
+  const [locale, setLocale] = useState<Locale>(() => localeFromPath(window.location.pathname));
+  const [theme, setTheme] = useState<Theme>(readTheme);
   const [data, setData] = useState<MixPayload | null>(null);
   const [error, setError] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     applyTheme(theme);
@@ -28,36 +25,43 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.lang = locale;
-    document.title =
-      locale === "fr"
-        ? "mixénergie · Mix énergétique du Québec"
-        : "mixénergie · Québec electricity mix";
-    const onPop = () => setLocale(localeFromPath(window.location.pathname));
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
+    document.title = dict[locale].pageTitle;
   }, [locale]);
 
   useEffect(() => {
-    let cancelled = false;
+    const onPop = () => setLocale(localeFromPath(window.location.pathname));
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
     async function load() {
-      setLoading(true);
-      setError(false);
       try {
-        const response = await fetch("/api/mix", { cache: "no-store" });
+        const response = await fetch("/api/mix", {
+          cache: "no-store",
+          signal: controller.signal,
+        });
         if (!response.ok) throw new Error(String(response.status));
-        const payload = (await response.json()) as MixPayload;
-        if (!cancelled) setData(payload);
+        setData((await response.json()) as MixPayload);
+        setError(false);
       } catch {
-        if (!cancelled) setError(true);
-      } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setError(true);
       }
     }
-    void load();
-    const id = window.setInterval(() => void load(), 60_000);
+
+    const refresh = () => {
+      if (!document.hidden) void load();
+    };
+
+    refresh();
+    const id = window.setInterval(refresh, REFRESH_MS);
+    document.addEventListener("visibilitychange", refresh);
     return () => {
-      cancelled = true;
+      controller.abort();
       window.clearInterval(id);
+      document.removeEventListener("visibilitychange", refresh);
     };
   }, []);
 
@@ -108,7 +112,7 @@ export function App() {
         </div>
 
         {/* Loading skeleton */}
-        {loading && !data ? (
+        {!data && !error ? (
           <div className="mt-8 space-y-4">
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
               {Array.from({ length: 4 }).map((_, i) => (

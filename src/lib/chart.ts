@@ -1,8 +1,15 @@
+import { parseHqStamp } from "./format.ts";
+
 export function stamp(value: string): number {
-  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
-  if (!match) return 0;
-  const [, year, month, day, hour, minute] = match;
-  return Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
+  const p = parseHqStamp(value);
+  if (!p) return 0;
+  return Date.UTC(
+    Number(p.year),
+    Number(p.month) - 1,
+    Number(p.day),
+    Number(p.hour),
+    Number(p.minute),
+  );
 }
 
 export function niceScale(maxValue: number, targetTicks = 4): { max: number; ticks: number[] } {
@@ -37,10 +44,16 @@ export function nearestValue(
   target: number,
   maxGap: number,
 ): number | null {
-  if (points.length === 0) return null;
-  const point = points[nearestIndex(points.map((p) => p.x), target)];
-  if (!point || Math.abs(point.x - target) > maxGap) return null;
-  return point.y;
+  let best: { x: number; y: number } | undefined;
+  let bestDist = Infinity;
+  for (const point of points) {
+    const dist = Math.abs(point.x - target);
+    if (dist < bestDist) {
+      best = point;
+      bestDist = dist;
+    }
+  }
+  return best && bestDist <= maxGap ? best.y : null;
 }
 
 export function sampleTicks<T>(items: T[], count: number): T[] {

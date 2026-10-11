@@ -5,7 +5,6 @@ import {
   type ImportFuel,
   type ImportFuelKey,
   type MarketFlow,
-  type MarketKey,
   type SourceKey,
   type SourceMw,
 } from "./types.ts";
@@ -21,22 +20,7 @@ export const LCA_G_PER_KWH: Record<SourceKey, number> = {
   thermal: 608,
 };
 
-export const IMPORT_LCA_G_PER_KWH: Record<ImportFuelKey, number> = {
-  hydro: 28,
-  wind: 14,
-  solar: 64,
-  nuclear: 8,
-  gas: 608,
-  biomass: 45,
-  other: 200,
-  unknown: 400,
-};
-
 export const RENEWABLE_KEYS: SourceKey[] = ["hydro", "wind", "other", "solar"];
-
-export function emptySources(): SourceMw {
-  return { hydro: 0, wind: 0, other: 0, solar: 0, thermal: 0 };
-}
 
 export function num(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
@@ -71,8 +55,7 @@ export function renewableMw(sources: SourceMw): number {
 }
 
 export function renewablePct(sources: SourceMw, total = sourceTotal(sources)): number {
-  if (total <= 0) return 0;
-  return (renewableMw(sources) / total) * 100;
+  return pct(renewableMw(sources), total);
 }
 
 export function intensityGPerKwh(sources: SourceMw, total = sourceTotal(sources)): number {
@@ -118,10 +101,6 @@ export function marketNet(exportMw: number): { exportMw: number; importMw: numbe
   return { exportMw: 0, importMw: Math.abs(exportMw) };
 }
 
-export function sumImportFuels(fuels: ImportFuel[]): number {
-  return fuels.reduce((sum, fuel) => sum + fuel.mw, 0);
-}
-
 export function mergeImportFuels(groups: ImportFuel[][]): ImportFuel[] {
   const bag = Object.fromEntries(IMPORT_FUEL_KEYS.map((key) => [key, 0])) as Record<
     ImportFuelKey,
@@ -140,10 +119,6 @@ export function sortMarkets(markets: MarketFlow[]): MarketFlow[] {
   return [...markets].sort((a, b) => (order.get(a.key) ?? 0) - (order.get(b.key) ?? 0));
 }
 
-export function isMarketKey(value: string): value is MarketKey {
-  return (MARKET_KEYS as readonly string[]).includes(value);
-}
-
-export function isSourceKey(value: string): value is SourceKey {
-  return (SOURCE_KEYS as readonly string[]).includes(value);
+export function isImportFuelKey(value: string): value is ImportFuelKey {
+  return (IMPORT_FUEL_KEYS as readonly string[]).includes(value);
 }

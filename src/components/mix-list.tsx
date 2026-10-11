@@ -1,10 +1,10 @@
-import { SOURCE_KEYS } from "../../shared/types.ts";
 import { pct } from "../../shared/mix.ts";
-import type { MixPayload } from "../../shared/types.ts";
+import { SOURCE_KEYS, type MixPayload } from "../../shared/types.ts";
 import type { Locale } from "../i18n.ts";
 import { dict } from "../i18n.ts";
 import { SOURCE_COLOR } from "../lib/colors.ts";
 import { formatHqStamp, formatMw, formatPct } from "../lib/format.ts";
+import { MiniBar, SegmentBar } from "./share-bars.tsx";
 
 type Props = {
   locale: Locale;
@@ -27,21 +27,18 @@ export function MixList({ locale, data }: Props) {
         </span>
       </div>
 
-      {/* Segmented proportional bar */}
-      <div className="mb-5 flex h-2.5 w-full overflow-hidden rounded-md bg-paper gap-0.5">
-        {SOURCE_KEYS.map((key) => {
+      <SegmentBar
+        className="mb-5 h-2.5"
+        segments={SOURCE_KEYS.map((key) => {
           const share = pct(sources[key], total);
-          if (share <= 0) return null;
-          return (
-            <span
-              key={key}
-              style={{ width: `${share}%`, background: SOURCE_COLOR[key] }}
-              className="h-full transition-all duration-300 first:rounded-l-sm last:rounded-r-sm"
-              title={`${t.source[key]} : ${formatPct(share, locale)} (${formatMw(sources[key], locale)} MW)`}
-            />
-          );
+          return {
+            key,
+            share,
+            color: SOURCE_COLOR[key],
+            title: `${t.source[key]} : ${formatPct(share, locale)} (${formatMw(sources[key], locale)} MW)`,
+          };
         })}
-      </div>
+      />
 
       {/* Sources list */}
       <ul className="divide-y divide-line/40">
@@ -66,16 +63,7 @@ export function MixList({ locale, data }: Props) {
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-3 sm:gap-5">
-                {/* Inline mini proportion bar */}
-                <div className="hidden sm:block h-1.5 w-20 overflow-hidden rounded-full bg-paper">
-                  <div
-                    className="h-full rounded-full transition-all duration-300"
-                    style={{
-                      width: `${Math.max(share, mw > 0 ? 1 : 0)}%`,
-                      background: SOURCE_COLOR[key],
-                    }}
-                  />
-                </div>
+                <MiniBar share={share} color={SOURCE_COLOR[key]} />
                 <div className="text-right tabular-nums">
                   <span className="text-sm font-bold text-ink sm:text-base">
                     {formatPct(share, locale)}

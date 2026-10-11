@@ -4,6 +4,7 @@ export type Locale = "fr" | "en";
 
 type Dict = {
   title: string;
+  pageTitle: string;
   tagline: string;
   updated: string;
   production: string;
@@ -20,12 +21,12 @@ type Dict = {
   yearTitle: string;
   yearHint: string;
   low: string;
-  avg: string;
   high: string;
   retry: string;
   error: string;
-  loading: string;
   aboutTitle: string;
+  legalTitle: string;
+  scrubHint: string;
   about: string;
   delay: string;
   license: string;
@@ -38,7 +39,6 @@ type Dict = {
   netImporter: string;
   balanced: string;
   ultraLowCarbon: string;
-  cleanEnergy: string;
   surplus: string;
   deficit: string;
   exporting: string;
@@ -53,6 +53,7 @@ type Dict = {
 export const dict: Record<Locale, Dict> = {
   fr: {
     title: "mixénergie",
+    pageTitle: "mixénergie · Mix énergétique du Québec",
     tagline: "Le mix énergétique du Québec, en direct.",
     updated: "Données d'Hydro-Québec",
     production: "Production",
@@ -69,11 +70,11 @@ export const dict: Record<Locale, Dict> = {
     yearTitle: "Mix 2025",
     yearHint: "Somme horaire sur l'année civile, données historiques.",
     low: "min",
-    avg: "moy",
     high: "max",
     retry: "Réessayer",
     error: "Impossible de charger les données.",
-    loading: "Chargement du mix…",
+    legalTitle: "Sources & mentions",
+    scrubHint: "Glisser sur le graphique pour inspecter",
     aboutTitle: "À propos des données",
     about:
       "La production vient des centrales d'Hydro-Québec et des producteurs indépendants liés par contrat, plus Churchill Falls. La demande est calculée par le Centre de conduite du réseau, hors réseaux autonomes. L'intensité GES est une moyenne pondérée des facteurs de cycle de vie d'Hydro-Québec (28 g pour l'hydraulique, 14 g pour l'éolien, 64 g pour le solaire, 608 g pour le thermique).",
@@ -90,7 +91,6 @@ export const dict: Record<Locale, Dict> = {
     netImporter: "Importateur net",
     balanced: "Équilibré",
     ultraLowCarbon: "Ultra-bas carbone",
-    cleanEnergy: "Énergie renouvelable",
     surplus: "Surplus",
     deficit: "Déficit",
     exporting: "Exportation",
@@ -129,6 +129,7 @@ export const dict: Record<Locale, Dict> = {
   },
   en: {
     title: "mixénergie",
+    pageTitle: "mixénergie · Québec electricity mix",
     tagline: "Québec's electricity mix, live.",
     updated: "Hydro-Québec data",
     production: "Generation",
@@ -145,11 +146,11 @@ export const dict: Record<Locale, Dict> = {
     yearTitle: "2025 mix",
     yearHint: "Hourly sum over the calendar year, historical dataset.",
     low: "low",
-    avg: "avg",
     high: "high",
     retry: "Try again",
     error: "Could not load the data.",
-    loading: "Loading the mix…",
+    legalTitle: "Sources & legal",
+    scrubHint: "Scrub across chart to inspect",
     aboutTitle: "About the data",
     about:
       "Generation covers Hydro-Québec plants, contracted independent producers, and Churchill Falls. Demand is computed by the system control centre and excludes off-grid networks. GHG intensity is a weighted average of Hydro-Québec lifecycle factors (28 g for hydro, 14 g for wind, 64 g for solar, 608 g for thermal).",
@@ -165,7 +166,6 @@ export const dict: Record<Locale, Dict> = {
     netImporter: "Net importer",
     balanced: "Balanced",
     ultraLowCarbon: "Ultra-low carbon",
-    cleanEnergy: "Renewable energy",
     surplus: "Surplus",
     deficit: "Deficit",
     exporting: "Export",

@@ -30,27 +30,28 @@ export function cacheState(
   return "expired";
 }
 
+const wallClockFormats = new Map<string, Intl.DateTimeFormat>();
+
 function wallClockIso(now: number, timeZone: string): string | null {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(new Date(now));
-  const get = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((part) => part.type === type)?.value;
-  const year = get("year");
-  const month = get("month");
-  const day = get("day");
-  const hour = get("hour");
-  const minute = get("minute");
-  const second = get("second");
-  if (!year || !month || !day || !hour || !minute || !second) return null;
-  return `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+  let format = wallClockFormats.get(timeZone);
+  if (!format) {
+    format = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    });
+    wallClockFormats.set(timeZone, format);
+  }
+  const p = Object.fromEntries(
+    format.formatToParts(new Date(now)).map((part) => [part.type, part.value]),
+  );
+  if (!p.year || !p.month || !p.day || !p.hour || !p.minute || !p.second) return null;
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}`;
 }
 
 /** Age of an HQ Eastern wall-clock stamp versus now in that zone. */

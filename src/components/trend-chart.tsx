@@ -227,7 +227,7 @@ export function TrendChart({ locale, data }: Props) {
           </span>
         </div>
         <p className="text-xs text-muted hidden sm:block">
-          {locale === "fr" ? "Glisser sur le graphique pour inspecter" : "Scrub across chart to inspect"}
+          {t.scrubHint}
         </p>
       </div>
     </section>
@@ -242,24 +242,22 @@ function layout(
 
   const prodPts = production.map((p) => ({ t: p.t, y: p.total, x: stamp(p.t) }));
   const demandPts = demand.map((d) => ({ t: d.t, y: d.mw, x: stamp(d.t) }));
-  const xs = [...prodPts.map((p) => p.x), ...demandPts.map((p) => p.x)];
-  const ys = [...prodPts.map((p) => p.y), ...demandPts.map((p) => p.y)];
-  const x0 = Math.min(...xs);
-  const x1 = Math.max(...xs);
-  const yScale = niceScale(Math.max(1, ...ys));
+  const all = [...prodPts, ...demandPts];
+  const x0 = Math.min(...all.map((p) => p.x));
+  const x1 = Math.max(...all.map((p) => p.x));
+  const yScale = niceScale(Math.max(1, ...all.map((p) => p.y)));
   const innerW = W - PAD.l - PAD.r;
   const innerH = H - PAD.t - PAD.b;
   const xAt = (x: number) => PAD.l + ((x - x0) / Math.max(x1 - x0, 1)) * innerW;
   const yAt = (y: number) => PAD.t + innerH - (y / yScale.max) * innerH;
 
   const prodLine = linePath(prodPts, xAt, yAt);
-  const last = prodPts[prodPts.length - 1];
-  const prodArea = last
-    ? `${prodLine} L${xAt(last.x)} ${PAD.t + innerH} L${xAt(prodPts[0]?.x ?? last.x)} ${PAD.t + innerH} Z`
-    : "";
+  const baseline = PAD.t + innerH;
+  const prodX = prodPts.map((p) => p.x);
+  const prodArea = `${prodLine} L${xAt(Math.max(...prodX))} ${baseline} L${xAt(Math.min(...prodX))} ${baseline} Z`;
 
   const times = new Map<number, string>();
-  for (const point of [...prodPts, ...demandPts]) {
+  for (const point of all) {
     if (!times.has(point.x)) times.set(point.x, point.t);
   }
   const minute = 60 * 1000;
