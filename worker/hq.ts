@@ -2,6 +2,8 @@ import {
   intensityGPerKwh,
   isImportFuelKey,
   latestFilled,
+  lowCarbonMw,
+  lowCarbonPct,
   marketNet,
   mergeImportFuels,
   num,
@@ -187,7 +189,7 @@ function parseYear(raw: unknown): YearMix | null {
     year: 2025,
     totalMwh: total,
     sources,
-    renewablePct: renewablePct(sources, total),
+    renewablePct: renewablePct(sources, "qc", total),
   };
 }
 
@@ -217,15 +219,18 @@ export async function loadMix(year: YearMix | null): Promise<MixPayload> {
   const demandNow = latestFilled(demandSeries, (d) => d.mw > 0);
 
   return {
+    province: "qc",
     fetchedAt: new Date().toISOString(),
     timezone: "America/Toronto",
     production: {
       at: productionAt,
       total,
       sources,
-      renewableMw: renewableMw(sources),
-      renewablePct: renewablePct(sources, total),
-      intensity: intensityGPerKwh(sources, total),
+      renewableMw: renewableMw(sources, "qc"),
+      renewablePct: renewablePct(sources, "qc", total),
+      lowCarbonMw: lowCarbonMw(sources, "qc"),
+      lowCarbonPct: lowCarbonPct(sources, "qc", total),
+      intensity: intensityGPerKwh(sources, "qc"),
     },
     demand: demandNow
       ? {

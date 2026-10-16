@@ -1,12 +1,13 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { MixPayload } from "../../shared/types.ts";
+import type { MixPayload, ProvinceId } from "../../shared/types.ts";
 import type { Locale } from "../i18n.ts";
-import { dict } from "../i18n.ts";
+import { getDict } from "../i18n.ts";
 import { invertCtmX, linePath, nearestIndex, nearestValue, niceScale, sampleTicks, stamp } from "../lib/chart.ts";
 import { formatHqTick, formatMw, formatMwCompact } from "../lib/format.ts";
 import { SectionHeader } from "./share-bars.tsx";
 
 type Props = {
+  province: ProvinceId;
   locale: Locale;
   data: MixPayload;
 };
@@ -31,8 +32,8 @@ function useWidth<T extends HTMLElement>(ready: boolean) {
   return [ref, width] as const;
 }
 
-export function TrendChart({ locale, data }: Props) {
-  const t = dict[locale];
+export function TrendChart({ province, locale, data }: Props) {
+  const t = getDict(province, locale);
   const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<number | null>(null);
   const hasData = data.series.production.length > 0;

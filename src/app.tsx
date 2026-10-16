@@ -6,14 +6,23 @@ import { SiteFooter } from "./components/site-footer.tsx";
 import { StatGrid } from "./components/stat-grid.tsx";
 import { TradeCard } from "./components/trade-card.tsx";
 import { TrendChart } from "./components/trend-chart.tsx";
-import { dict, localeFromPath, pathForLocale, type Locale } from "./i18n.ts";
+import { PROVINCES } from "../shared/provinces.ts";
+import {
+  apiPath,
+  DESCRIPTION,
+  getDict,
+  pathForRoute,
+  routeFromPath,
+  type Route,
+} from "./i18n.ts";
 import { formatHqStamp, formatPct } from "./lib/format.ts";
 import { applyTheme, readTheme, type Theme } from "./lib/theme.ts";
 
 const REFRESH_MS = 60_000;
 
 export function App() {
-  const [locale, setLocale] = useState<Locale>(() => localeFromPath(window.location.pathname));
+  const [route, setRoute] = useState<Route>(() => routeFromPath(window.location.pathname));
+  const { province, locale } = route;
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [data, setData] = useState<MixPayload | null>(null);
   const [error, setError] = useState(false);
@@ -24,21 +33,32 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.lang = locale;
-    document.title = dict[locale].pageTitle;
-  }, [locale]);
+    document.title = getDict(province, locale).pageTitle;
+
+    const url = `https://mixenergie.ca${pathForRoute({ province, locale })}`;
+    const set = (selector: string, attr: string, value: string) =>
+      document.head.querySelector(selector)?.setAttribute(attr, value);
+    set('link[rel="canonical"]', "href", url);
+    set('meta[name="description"]', "content", DESCRIPTION[province][locale]);
+    set('meta[property="og:url"]', "content", url);
+    set('meta[property="og:title"]', "content", document.title);
+    set('meta[property="og:description"]', "content", DESCRIPTION[province][locale]);
+  }, [province, locale]);
 
   useEffect(() => {
-    const onPop = () => setLocale(localeFromPath(window.location.pathname));
+    const onPop = () => setRoute(routeFromPath(window.location.pathname));
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
   useEffect(() => {
     const controller = new AbortController();
+    setData(null);
+    setError(false);
 
     async function load() {
       try {
-        const response = await fetch("/api/mix", {
+        const response = await fetch(apiPath(province), {
           cache: "no-store",
           signal: controller.signal,
         });
@@ -62,19 +82,25 @@ export function App() {
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", refresh);
     };
-  }, []);
+  }, [province]);
 
-  const t = dict[locale];
+  const t = getDict(province, locale);
+  const heroPct =
+    data == null
+      ? 0
+      : PROVINCES[province].hero === "lowCarbon"
+        ? data.production.lowCarbonPct
+        : data.production.renewablePct;
 
   return (
     <div className="min-h-dvh bg-paper text-ink">
       <Header
-        locale={locale}
+        route={route}
         theme={theme}
         onTheme={setTheme}
-        onLocale={(next) => {
-          window.history.pushState({}, "", pathForLocale(next));
-          setLocale(next);
+        onRoute={(next) => {
+          window.history.pushState({}, "", pathForRoute(next));
+          setRoute(next);
         }}
       />
       <main className="mx-auto max-w-5xl px-4 pb-4 pt-10 sm:px-6 sm:pt-14">
@@ -87,7 +113,7 @@ export function App() {
             {data ? (
               <>
                 <span className="numeral block text-7xl leading-none sm:text-8xl lg:text-9xl">
-                  {formatPct(Math.floor(data.production.renewablePct * 10) / 10, locale)}
+                  {formatPct(Math.floor(heroPct * 10) / 10, locale)}
                 </span>
                 <span className="mt-4 block max-w-2xl text-xl font-medium leading-snug tracking-tight sm:text-3xl">
                   {t.heroLead}
@@ -137,14 +163,14 @@ export function App() {
 
         {data ? (
           <div className="mt-12 space-y-12 sm:space-y-14">
-            <StatGrid locale={locale} data={data} />
-            <MixList locale={locale} data={data} />
-            <TrendChart locale={locale} data={data} />
-            <TradeCard locale={locale} data={data} />
+            <StatGrid province={province} locale={locale} data={data} />
+            <MixList province={province} locale={locale} data={data} />
+            <TrendChart province={province} locale={locale} data={data} />
+            <TradeCard province={province} locale={locale} data={data} />
           </div>
         ) : null}
       </main>
-      <SiteFooter locale={locale} />
+      <SiteFooter province={province} locale={locale} />
     </div>
   );
 }

@@ -7,8 +7,8 @@
 ** DONE FR-first bilingual dashboard
 ** DONE 48h chart, interties, 2025 mix
 ** DONE KV snapshot cache + cron refresh
-** TODO Deploy to Cloudflare Workers
-** TODO Custom domain
+** DONE Deploy to Cloudflare Workers
+** DONE Custom domain
 ** TODO OG image
 
 * Later
@@ -17,8 +17,8 @@
 ** TODO Import intensity vs local intensity
 
 * Provinces
-** TODO Site structure: path (/on, /ab) vs subdomain (on.mixenergie.ca), shared chrome, i18n
-** TODO Ontario from IESO public XML (hourly fuel mix, demand, 14 interties)
+** DONE Site structure: path prefix (/on, /on/en), province switcher in header, /api/mix/<id>
+** DONE Ontario from IESO public XML (hourly fuel mix, demand, 14 interties)
 ** TODO Alberta from AESO CSD / API (live mix, AIL, BC/SK/Montana)
 ** TODO Nova Scotia from NS Power (live mix JSON is 404; OASIS HTML + Maritime Link)
 ** TODO Saskatchewan from SaskPower JSON (daily-average mix, 5 min demand)

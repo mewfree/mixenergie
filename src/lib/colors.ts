@@ -2,10 +2,14 @@ import type { ImportFuelKey, SourceKey } from "../../shared/types.ts";
 
 export const SOURCE_COLOR: Record<SourceKey, string> = {
   hydro: "#24608f",
+  nuclear: "#6b5b95",
   wind: "#4a918c",
-  other: "#78a05e",
   solar: "#c9a43a",
+  biomass: "#78a05e",
+  other: "#78a05e",
+  gas: "#b4572b",
   thermal: "#b4572b",
+  unclassified: "#8a8a84",
 };
 
 export const IMPORT_COLOR: Record<ImportFuelKey, string> = {

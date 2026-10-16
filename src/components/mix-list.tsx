@@ -1,19 +1,22 @@
 import { pct } from "../../shared/mix.ts";
-import { SOURCE_KEYS, type MixPayload } from "../../shared/types.ts";
+import { PROVINCES } from "../../shared/provinces.ts";
+import type { MixPayload, ProvinceId } from "../../shared/types.ts";
 import type { Locale } from "../i18n.ts";
-import { dict } from "../i18n.ts";
+import { getDict } from "../i18n.ts";
 import { SOURCE_COLOR } from "../lib/colors.ts";
 import { formatMw, formatPct } from "../lib/format.ts";
 import { SectionHeader, SegmentBar, Swatch } from "./share-bars.tsx";
 
 type Props = {
+  province: ProvinceId;
   locale: Locale;
   data: MixPayload;
 };
 
 /** Current generation mix, with the 2025 annual mix alongside for context. */
-export function MixList({ locale, data }: Props) {
-  const t = dict[locale];
+export function MixList({ province, locale, data }: Props) {
+  const t = getDict(province, locale);
+  const sourceKeys = PROVINCES[province].sources;
   const { sources, total } = data.production;
   const year = data.year;
   const columns = year ? "grid-cols-[1fr_6.5rem_4.5rem]" : "grid-cols-[1fr_6.5rem]";
@@ -32,7 +35,7 @@ export function MixList({ locale, data }: Props) {
 
       <SegmentBar
         className="mb-5 h-3"
-        segments={SOURCE_KEYS.map((key) => {
+        segments={sourceKeys.map((key) => {
           const share = pct(sources[key], total);
           return {
             key,
@@ -50,7 +53,7 @@ export function MixList({ locale, data }: Props) {
       </div>
 
       <ul className="divide-y divide-line">
-        {SOURCE_KEYS.map((key) => {
+        {sourceKeys.map((key) => {
           const mw = sources[key];
           return (
             <li key={key} className={`grid items-center gap-x-4 py-3 ${columns}`}>
@@ -59,7 +62,11 @@ export function MixList({ locale, data }: Props) {
                   <Swatch color={SOURCE_COLOR[key]} />
                   {t.source[key]}
                 </div>
-                <p className="mt-0.5 hidden pl-5 text-xs leading-snug text-muted sm:block">{t.sourceHint[key]}</p>
+                {t.sourceHint[key] ? (
+                  <p className="mt-0.5 hidden pl-5 text-xs leading-snug text-muted sm:block">
+                    {t.sourceHint[key]}
+                  </p>
+                ) : null}
               </div>
               <div className="text-right tabular-nums">
                 <p className="text-[15px] font-semibold text-ink">

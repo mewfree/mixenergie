@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
-import { LCA_G_PER_KWH, pct } from "../../shared/mix.ts";
-import type { MixPayload } from "../../shared/types.ts";
+import { pct } from "../../shared/mix.ts";
+import { PROVINCES } from "../../shared/provinces.ts";
+import type { MixPayload, ProvinceId } from "../../shared/types.ts";
 import type { Locale } from "../i18n.ts";
-import { dict } from "../i18n.ts";
+import { getDict } from "../i18n.ts";
 import { formatG, formatMw, formatSignedMw } from "../lib/format.ts";
 
 type Props = {
+  province: ProvinceId;
   locale: Locale;
   data: MixPayload;
 };
@@ -23,9 +25,11 @@ const VALUE = "numeral mt-3 flex items-baseline gap-1.5 text-3xl leading-none sm
 const UNIT = "text-xs font-normal tracking-normal text-muted";
 const SUB = "mt-3 text-sm text-muted";
 
-export function StatGrid({ locale, data }: Props) {
-  const t = dict[locale];
+export function StatGrid({ province, locale, data }: Props) {
+  const t = getDict(province, locale);
   const { demand, production: prod, trade } = data;
+  const { lca, referenceFuel } = PROVINCES[province];
+  const referenceG = lca[referenceFuel] ?? 0;
 
   const demandRangePct =
     demand && demand.high > demand.low
@@ -81,7 +85,7 @@ export function StatGrid({ locale, data }: Props) {
           <span className={UNIT}>{t.intensityUnit}</span>
         </p>
         <p className={SUB}>
-          {t.intensityRef.replace("{g}", formatG(LCA_G_PER_KWH.thermal, locale))}
+          {t.intensityRef.replace("{g}", formatG(referenceG, locale))}
         </p>
       </StatCard>
 

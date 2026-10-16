@@ -1,5 +1,6 @@
-import type { Locale } from "../i18n.ts";
-import { dict } from "../i18n.ts";
+import { PROVINCE_IDS } from "../../shared/types.ts";
+import type { Locale, Route } from "../i18n.ts";
+import { getDict, pathForRoute } from "../i18n.ts";
 import type { Theme } from "../lib/theme.ts";
 
 const LOCALES: { code: Locale; label: string; name: string }[] = [
@@ -8,38 +9,57 @@ const LOCALES: { code: Locale; label: string; name: string }[] = [
 ];
 
 type Props = {
-  locale: Locale;
+  route: Route;
   theme: Theme;
   onTheme: (theme: Theme) => void;
-  onLocale: (locale: Locale) => void;
+  onRoute: (route: Route) => void;
 };
 
-export function Header({ locale, theme, onTheme, onLocale }: Props) {
-  const t = dict[locale];
+const TAB = "cursor-pointer border-b-2 pb-0.5 transition-colors";
+const TAB_ON = "border-ink text-ink";
+const TAB_OFF = "border-transparent text-muted hover:text-ink";
+
+export function Header({ route, theme, onTheme, onRoute }: Props) {
+  const { province, locale } = route;
+  const t = getDict(province, locale);
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
-        <a href={locale === "en" ? "/en" : "/"} className="flex items-baseline">
+        <a href={pathForRoute(route)} className="flex items-baseline">
           <span className="text-lg font-semibold tracking-tight text-ink">
             {t.title}
           </span>
         </a>
 
         <div className="flex items-center gap-5">
+          <nav
+            className="flex items-center gap-3 text-xs font-semibold tracking-wide"
+            aria-label={t.provinceLabel}
+          >
+            {PROVINCE_IDS.map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onRoute({ province: id, locale })}
+                aria-label={t.province[id]}
+                aria-pressed={province === id}
+                className={`${TAB} ${province === id ? TAB_ON : TAB_OFF}`}
+              >
+                {id.toUpperCase()}
+              </button>
+            ))}
+          </nav>
+
           <div className="flex items-center gap-3 text-xs font-semibold tracking-wide">
             {LOCALES.map(({ code, label, name }) => (
               <button
                 key={code}
                 type="button"
-                onClick={() => onLocale(code)}
+                onClick={() => onRoute({ province, locale: code })}
                 aria-label={name}
                 aria-pressed={locale === code}
-                className={`cursor-pointer border-b-2 pb-0.5 transition-colors ${
-                  locale === code
-                    ? "border-ink text-ink"
-                    : "border-transparent text-muted hover:text-ink"
-                }`}
+                className={`${TAB} ${locale === code ? TAB_ON : TAB_OFF}`}
               >
                 {label}
               </button>

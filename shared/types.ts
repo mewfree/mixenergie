@@ -1,9 +1,18 @@
+export const PROVINCE_IDS = ["qc", "on"] as const;
+
+export type ProvinceId = (typeof PROVINCE_IDS)[number];
+
+/** Every generation category any province reports; a province uses a subset. */
 export const SOURCE_KEYS = [
   "hydro",
+  "nuclear",
   "wind",
-  "other",
   "solar",
+  "biomass",
+  "other",
+  "gas",
   "thermal",
+  "unclassified",
 ] as const;
 
 export type SourceKey = (typeof SOURCE_KEYS)[number];
@@ -23,9 +32,13 @@ export type ImportFuelKey = (typeof IMPORT_FUEL_KEYS)[number];
 
 export const MARKET_KEYS = [
   "ontario",
+  "quebec",
   "newyork",
   "newengland",
   "newbrunswick",
+  "manitoba",
+  "michigan",
+  "minnesota",
 ] as const;
 
 export type MarketKey = (typeof MARKET_KEYS)[number];
@@ -61,6 +74,7 @@ export type YearMix = {
 };
 
 export type MixPayload = {
+  province: ProvinceId;
   fetchedAt: string;
   timezone: "America/Toronto";
   production: {
@@ -69,6 +83,8 @@ export type MixPayload = {
     sources: SourceMw;
     renewableMw: number;
     renewablePct: number;
+    lowCarbonMw: number;
+    lowCarbonPct: number;
     intensity: number;
   };
   demand: {

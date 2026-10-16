@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  emptySources,
   intensityGPerKwh,
   latestFilled,
+  lowCarbonPct,
   marketNet,
   pct,
   renewablePct,
@@ -18,19 +20,24 @@ describe("mix math", () => {
       thermique: -3,
     });
     expect(sources.thermal).toBe(0);
-    expect(renewablePct(sources, 15850)).toBeCloseTo(100, 0);
+    expect(renewablePct(sources, "qc", 15850)).toBeCloseTo(100, 0);
     expect(pct(14229, 15850)).toBeCloseTo(89.8, 1);
   });
 
   it("weights lifecycle intensity", () => {
-    const g = intensityGPerKwh({
-      hydro: 100,
-      wind: 0,
-      other: 0,
-      solar: 0,
-      thermal: 0,
-    });
+    const g = intensityGPerKwh({ ...emptySources(), hydro: 100 }, "qc");
     expect(g).toBe(28);
+  });
+
+  it("uses Ontario factors and skips unclassified output", () => {
+    const sources = { ...emptySources(), nuclear: 50, gas: 50, unclassified: 400 };
+    expect(intensityGPerKwh(sources, "on")).toBeCloseTo((50 * 12 + 50 * 490) / 100, 5);
+  });
+
+  it("counts nuclear as low carbon but not renewable in Ontario", () => {
+    const sources = { ...emptySources(), nuclear: 60, hydro: 20, gas: 20 };
+    expect(renewablePct(sources, "on")).toBeCloseTo(20, 5);
+    expect(lowCarbonPct(sources, "on")).toBeCloseTo(80, 5);
   });
 
   it("splits signed intertie values", () => {

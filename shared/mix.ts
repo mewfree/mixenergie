@@ -1,3 +1,4 @@
+import { PROVINCES } from "./provinces.ts";
 import {
   IMPORT_FUEL_KEYS,
   MARKET_KEYS,
@@ -5,22 +6,14 @@ import {
   type ImportFuel,
   type ImportFuelKey,
   type MarketFlow,
+  type ProvinceId,
   type SourceKey,
   type SourceMw,
 } from "./types.ts";
 
-/** Lifecycle GHG factors published by Hydro-Québec, g CO2eq / kWh. */
-export const LCA_G_PER_KWH: Record<SourceKey, number> = {
-  hydro: 28,
-  wind: 14,
-  solar: 64,
-  /** Estimate for independent biomass, biogas and small hydro. */
-  other: 45,
-  /** Bécancour thermal station, treated as natural gas. */
-  thermal: 608,
-};
-
-export const RENEWABLE_KEYS: SourceKey[] = ["hydro", "wind", "other", "solar"];
+export function emptySources(): SourceMw {
+  return Object.fromEntries(SOURCE_KEYS.map((key) => [key, 0])) as SourceMw;
+}
 
 export function num(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
@@ -38,6 +31,7 @@ export function sourcesFromUnknown(raw: {
   thermique?: unknown;
 }): SourceMw {
   return {
+    ...emptySources(),
     hydro: clampZero(num(raw.hydraulique)),
     wind: clampZero(num(raw.eolien)),
     other: clampZero(num(raw.autres)),
@@ -50,21 +44,46 @@ export function sourceTotal(sources: SourceMw): number {
   return SOURCE_KEYS.reduce((sum, key) => sum + sources[key], 0);
 }
 
-export function renewableMw(sources: SourceMw): number {
-  return RENEWABLE_KEYS.reduce((sum, key) => sum + sources[key], 0);
+function sumKeys(sources: SourceMw, keys: SourceKey[]): number {
+  return keys.reduce((sum, key) => sum + sources[key], 0);
 }
 
-export function renewablePct(sources: SourceMw, total = sourceTotal(sources)): number {
-  return pct(renewableMw(sources), total);
+export function renewableMw(sources: SourceMw, province: ProvinceId): number {
+  return sumKeys(sources, PROVINCES[province].renewable);
 }
 
-export function intensityGPerKwh(sources: SourceMw, total = sourceTotal(sources)): number {
-  if (total <= 0) return 0;
-  const weighted = SOURCE_KEYS.reduce(
-    (sum, key) => sum + sources[key] * LCA_G_PER_KWH[key],
-    0,
-  );
-  return weighted / total;
+export function renewablePct(
+  sources: SourceMw,
+  province: ProvinceId,
+  total = sourceTotal(sources),
+): number {
+  return pct(renewableMw(sources, province), total);
+}
+
+export function lowCarbonMw(sources: SourceMw, province: ProvinceId): number {
+  return sumKeys(sources, PROVINCES[province].lowCarbon);
+}
+
+export function lowCarbonPct(
+  sources: SourceMw,
+  province: ProvinceId,
+  total = sourceTotal(sources),
+): number {
+  return pct(lowCarbonMw(sources, province), total);
+}
+
+/** Weighted lifecycle intensity over the sources that have a published factor. */
+export function intensityGPerKwh(sources: SourceMw, province: ProvinceId): number {
+  const { lca } = PROVINCES[province];
+  let weighted = 0;
+  let covered = 0;
+  for (const key of SOURCE_KEYS) {
+    const factor = lca[key];
+    if (factor === undefined) continue;
+    weighted += sources[key] * factor;
+    covered += sources[key];
+  }
+  return covered > 0 ? weighted / covered : 0;
 }
 
 export function pct(part: number, total: number): number {

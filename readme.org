@@ -1,7 +1,7 @@
 #+title: mixénergie
-#+subtitle: Mix énergétique du Québec
+#+subtitle: Mix énergétique du Québec et de l'Ontario
 
-Site simple, pour lire le mix électrique d'Hydro-Québec : production, demande, échanges et mix annuel.
+Site simple, pour lire le mix électrique d'Hydro-Québec et de l'IESO : production, demande, échanges et mix annuel.
 
 * Stack
 
@@ -27,15 +27,28 @@ Délais connus : ~90 min pour l'hydraulique / éolien / solaire / autres, ~6 h p
 
 L'intensité GES (g/kWh) est une moyenne pondérée des facteurs de cycle de vie publiés par Hydro-Québec. Le poste "autres renouvelables" n'a pas de facteur officiel : 45 g/kWh (estimation).
 
+** Ontario
+
+Rapports publics de l'IESO (=reports-public.ieso.ca/public=) :
+
+- Production par combustible :: =GenOutputCapability= (aujourd'hui) et =GenOutputCapability_AAAAMMJJ= (hier), somme par combustible des sorties horaires des centrales
+- Demande :: =Demand.csv= (publié une fois par jour), complété par les archives =RealtimeTotals_AAAAMMJJHH= (gardées dans KV) et =RealtimeTotals= (5 min)
+- Échanges :: =IntertieScheduleFlow=, flux réels aux 5 min, 14 zones regroupées en 5 marchés (Québec, New York, Manitoba, Michigan, Minnesota)
+- Mix annuel :: =GenOutputbyFuelMonthly_2025=
+
+L'IESO date tout en heure normale de l'Est (HNE), heure de fin d'heure. Le worker convertit en heure murale de Toronto, comme Hydro-Québec. Les installations intégrées aux réseaux de distribution ne sont pas dans ces rapports.
+
+L'intensité GES utilise les médianes de cycle de vie du GIEC (AR5) : nucléaire 12, hydraulique 24, éolien 11, solaire 48, biomasse 230, gaz 490 g/kWh. Les sorties « autres » de l'IESO sont exclues de la moyenne. Le chiffre principal est la part sans émissions (nucléaire inclus) ; la part renouvelable est affichée en dessous.
+
 * Cache
 
 | Couche            | Quoi             | Durée                                  |
 |-------------------+------------------+----------------------------------------|
-| KV =mix:snapshot= | Payload assemblé | Frais tant que la demande a moins de ~16,5 min, servi périmé jusqu'à 6 h |
+| KV =mix:snapshot= (=mix:on:snapshot= pour l'Ontario) | Payload assemblé | Frais tant que la demande a moins de ~16,5 min, servi périmé jusqu'à 6 h |
 | KV =mix:year=     | Mix annuel 2025  | Frais 24 h, TTL 7 jours                                                  |
 | Lecture KV        | =cacheTtl= 60 s  | Cache de bord des lectures (minimum KV)                                  |
 | Navigateur        | =Cache-Control=  | Frais 1 min + SWR 1 min ; périmé max-age 0                               |
-| Cron              | =*/5 * * * *=    | Réchauffe le snapshot                                                    |
+| Cron              | =*/5 * * * *=    | Réchauffe les snapshots de chaque province                               |
 
 Les requêtes lisent KV. Un snapshot encore frais (demande du quart d'heure en cours) est renvoyé tel quel. Un snapshot d'un intervalle en retard est renvoyé tout de suite, puis rafraîchi en arrière-plan. Deux intervalles ou plus de retard : rafraîchissement synchrone. Le mix annuel n'est refetché qu'une fois par jour.
 
@@ -59,15 +72,18 @@ npm run dev
 
 * i18n
 
-- =/= français (défaut)
-- =/en= anglais
+- =/= français (défaut), Québec
+- =/en= anglais, Québec
+- =/on= français, Ontario
+- =/on/en= anglais, Ontario
+- API : =/api/mix= (Québec), =/api/mix/on= (Ontario)
 - Copie dans =src/i18n.ts=
 
 * Layout
 
 #+begin_example
-shared/          Types + calculs (front et worker)
-worker/          API /api/mix
+shared/          Types, config par province + calculs (front et worker)
+worker/          API /api/mix, /api/mix/on (hq.ts, ieso.ts)
 src/             UI
 public/          Favicon
 wrangler.jsonc   Cloudflare

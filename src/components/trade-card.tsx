@@ -1,12 +1,13 @@
 import { pct } from "../../shared/mix.ts";
-import type { MixPayload } from "../../shared/types.ts";
+import type { MixPayload, ProvinceId } from "../../shared/types.ts";
 import type { Locale } from "../i18n.ts";
-import { dict } from "../i18n.ts";
+import { getDict } from "../i18n.ts";
 import { IMPORT_COLOR } from "../lib/colors.ts";
 import { formatHqStamp, formatMw, formatPct } from "../lib/format.ts";
 import { SectionHeader, SegmentBar, Swatch } from "./share-bars.tsx";
 
 type Props = {
+  province: ProvinceId;
   locale: Locale;
   data: MixPayload;
 };
@@ -17,8 +18,8 @@ const TONES = {
   balanced: { text: "text-muted", arrow: "", label: "balanced" },
 } as const;
 
-export function TradeCard({ locale, data }: Props) {
-  const t = dict[locale];
+export function TradeCard({ province, locale, data }: Props) {
+  const t = getDict(province, locale);
   const trade = data.trade;
   if (!trade) return null;
 

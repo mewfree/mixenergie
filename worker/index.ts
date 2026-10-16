@@ -1,8 +1,17 @@
 import { mixCacheControl } from "../shared/cache.ts";
+import { PROVINCE_IDS, type ProvinceId } from "../shared/types.ts";
 import { logError } from "./log.ts";
 import { refreshMix, serveMix } from "./store.ts";
 
 const CORS = { "Access-Control-Allow-Origin": "*" };
+
+/** /api/mix is Quebec for backwards compatibility; others are /api/mix/<id>. */
+function provinceFromPath(pathname: string): ProvinceId | null {
+  if (pathname === "/api/mix") return "qc";
+  const match = /^\/api\/mix\/([a-z]+)$/.exec(pathname);
+  const id = match?.[1];
+  return PROVINCE_IDS.find((province) => province === id) ?? null;
+}
 
 function json(
   data: unknown,
@@ -30,28 +39,33 @@ export default {
       });
     }
 
-    if (url.pathname !== "/api/mix") {
+    const province = provinceFromPath(url.pathname);
+    if (!province) {
       return json({ error: "not found" }, 404, "no-store");
     }
 
     try {
-      const result = await serveMix(env, ctx);
+      const result = await serveMix(env, ctx, province);
       return json(result.payload, 200, mixCacheControl(result.state), {
         "X-Mix-Cache": result.state,
         "X-Mix-Age": String(result.ageSeconds),
       });
     } catch (error) {
-      logError("mix fetch failed", error);
+      logError(`${province} mix fetch failed`, error);
       return json({ error: "upstream unavailable" }, 502, "no-store");
     }
   },
 
   async scheduled(_controller, env) {
-    try {
-      await refreshMix(env);
-      console.log(JSON.stringify({ message: "mix cron refresh ok" }));
-    } catch (error) {
-      logError("mix cron refresh failed", error);
-    }
+    await Promise.all(
+      PROVINCE_IDS.map(async (province) => {
+        try {
+          await refreshMix(env, province);
+          console.log(JSON.stringify({ message: "mix cron refresh ok", province }));
+        } catch (error) {
+          logError(`${province} mix cron refresh failed`, error);
+        }
+      }),
+    );
   },
 } satisfies ExportedHandler<Env>;

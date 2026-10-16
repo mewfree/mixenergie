@@ -1,3 +1,5 @@
+import type { ProvinceId } from "./types.ts";
+
 export const SNAPSHOT_FRESH_MS = 15 * 60 * 1000;
 export const SNAPSHOT_MAX_MS = 6 * 60 * 60 * 1000;
 export const YEAR_FRESH_MS = 24 * 60 * 60 * 1000;
@@ -8,9 +10,11 @@ export const LOCK_TTL_SECONDS = 60;
 export const DEMAND_INTERVAL_MS = 15 * 60 * 1000;
 export const DEMAND_PUBLISH_SLACK_MS = 90 * 1000;
 
-export const KV_SNAPSHOT = "mix:snapshot";
-export const KV_YEAR = "mix:year";
-export const KV_LOCK = "mix:lock";
+/** Quebec keeps the original unprefixed keys so existing snapshots stay valid. */
+export function kvKeys(province: ProvinceId): { snapshot: string; year: string; lock: string } {
+  const base = province === "qc" ? "mix" : `mix:${province}`;
+  return { snapshot: `${base}:snapshot`, year: `${base}:year`, lock: `${base}:lock` };
+}
 
 export type CacheState = "fresh" | "stale" | "expired";
 
@@ -32,7 +36,7 @@ export function cacheState(
 
 const wallClockFormats = new Map<string, Intl.DateTimeFormat>();
 
-function wallClockIso(now: number, timeZone: string): string | null {
+export function wallClockIso(now: number, timeZone: string): string | null {
   let format = wallClockFormats.get(timeZone);
   if (!format) {
     format = new Intl.DateTimeFormat("en-CA", {

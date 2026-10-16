@@ -1,11 +1,8 @@
 import {
   cacheAge,
-  DEMAND_INTERVAL_MS,
   hqDataAgeMs,
-  KV_LOCK,
+  kvKeys,
   KV_READ_CACHE_TTL,
-  KV_SNAPSHOT,
-  KV_YEAR,
   LOCK_TTL_SECONDS,
   snapshotCacheState,
   SNAPSHOT_TTL_SECONDS,
@@ -13,9 +10,21 @@ import {
   YEAR_TTL_SECONDS,
   type CacheState,
 } from "../shared/cache.ts";
-import type { MixPayload, YearMix } from "../shared/types.ts";
-import { loadMix, loadYear } from "./hq.ts";
+import { PROVINCES } from "../shared/provinces.ts";
+import type { MixPayload, ProvinceId, YearMix } from "../shared/types.ts";
+import * as hq from "./hq.ts";
+import * as ieso from "./ieso.ts";
 import { logError } from "./log.ts";
+
+type Loader = {
+  loadMix(env: Env, year: YearMix | null): Promise<MixPayload>;
+  loadYear(): Promise<YearMix | null>;
+};
+
+const LOADERS: Record<ProvinceId, Loader> = {
+  qc: { loadMix: (_env, year) => hq.loadMix(year), loadYear: hq.loadYear },
+  on: ieso,
+};
 
 type SnapshotMeta = { storedAt: number };
 type YearRecord = { storedAt: number; year: YearMix };
@@ -38,11 +47,11 @@ function metaTime(metadata: unknown, fallbackIso?: string): number {
   return 0;
 }
 
-export async function readSnapshot(env: Env): Promise<{
+export async function readSnapshot(env: Env, province: ProvinceId): Promise<{
   payload: MixPayload;
   storedAt: number;
 } | null> {
-  const result = await env.MIX.getWithMetadata<MixPayload>(KV_SNAPSHOT, {
+  const result = await env.MIX.getWithMetadata<MixPayload>(kvKeys(province).snapshot, {
     type: "json",
     cacheTtl: KV_READ_CACHE_TTL,
   });
@@ -53,51 +62,57 @@ export async function readSnapshot(env: Env): Promise<{
   };
 }
 
-async function writeSnapshot(env: Env, payload: MixPayload, storedAt: number): Promise<void> {
-  await env.MIX.put(KV_SNAPSHOT, JSON.stringify(payload), {
+async function writeSnapshot(
+  env: Env,
+  province: ProvinceId,
+  payload: MixPayload,
+  storedAt: number,
+): Promise<void> {
+  await env.MIX.put(kvKeys(province).snapshot, JSON.stringify(payload), {
     expirationTtl: SNAPSHOT_TTL_SECONDS,
     metadata: { storedAt } satisfies SnapshotMeta,
   });
 }
 
-async function readYear(env: Env): Promise<YearRecord | null> {
-  return env.MIX.get<YearRecord>(KV_YEAR, {
+async function readYear(env: Env, province: ProvinceId): Promise<YearRecord | null> {
+  return env.MIX.get<YearRecord>(kvKeys(province).year, {
     type: "json",
     cacheTtl: 3600,
   });
 }
 
-async function writeYear(env: Env, record: YearRecord): Promise<void> {
-  await env.MIX.put(KV_YEAR, JSON.stringify(record), {
+async function writeYear(env: Env, province: ProvinceId, record: YearRecord): Promise<void> {
+  await env.MIX.put(kvKeys(province).year, JSON.stringify(record), {
     expirationTtl: YEAR_TTL_SECONDS,
   });
 }
 
-async function acquireLock(env: Env): Promise<boolean> {
-  const existing = await env.MIX.get(KV_LOCK);
+async function acquireLock(env: Env, province: ProvinceId): Promise<boolean> {
+  const { lock } = kvKeys(province);
+  const existing = await env.MIX.get(lock);
   if (existing) return false;
-  await env.MIX.put(KV_LOCK, String(Date.now()), { expirationTtl: LOCK_TTL_SECONDS });
+  await env.MIX.put(lock, String(Date.now()), { expirationTtl: LOCK_TTL_SECONDS });
   return true;
 }
 
-async function resolveYear(env: Env): Promise<YearMix | null> {
-  const cached = await readYear(env);
+async function resolveYear(env: Env, province: ProvinceId): Promise<YearMix | null> {
+  const cached = await readYear(env, province);
   if (cached && cacheAge(cached.storedAt) < YEAR_FRESH_MS) {
     return cached.year;
   }
 
-  const fresh = await loadYear();
+  const fresh = await LOADERS[province].loadYear();
   if (fresh) {
-    await writeYear(env, { storedAt: Date.now(), year: fresh });
+    await writeYear(env, province, { storedAt: Date.now(), year: fresh });
     return fresh;
   }
   return cached?.year ?? null;
 }
 
-export async function refreshMix(env: Env): Promise<MixPayload> {
-  const year = await resolveYear(env);
-  const payload = await loadMix(year);
-  await writeSnapshot(env, payload, Date.now());
+export async function refreshMix(env: Env, province: ProvinceId): Promise<MixPayload> {
+  const year = await resolveYear(env, province);
+  const payload = await LOADERS[province].loadMix(env, year);
+  await writeSnapshot(env, province, payload, Date.now());
   return payload;
 }
 
@@ -105,29 +120,36 @@ function ageSeconds(storedAt: number): number {
   return Math.round(cacheAge(storedAt) / 1000);
 }
 
-export async function serveMix(env: Env, ctx: ExecutionContext): Promise<MixResult> {
-  const cached = await readSnapshot(env);
+export async function serveMix(
+  env: Env,
+  ctx: ExecutionContext,
+  province: ProvinceId,
+): Promise<MixResult> {
+  const intervalMs = PROVINCES[province].demandIntervalMs;
+  const cached = await readSnapshot(env, province);
   if (cached) {
-    const state = snapshotCacheState(cached.storedAt, cached.payload.demand?.at);
+    // Only a live demand cadence lets us judge freshness from the data itself.
+    const demandAt = intervalMs ? cached.payload.demand?.at : undefined;
+    const state = snapshotCacheState(cached.storedAt, demandAt);
     const age = ageSeconds(cached.storedAt);
     if (state === "fresh") {
       return { payload: cached.payload, state, ageSeconds: age };
     }
     if (state === "stale") {
-      const demandAge = cached.payload.demand ? hqDataAgeMs(cached.payload.demand.at) : 0;
-      if (demandAge >= 2 * DEMAND_INTERVAL_MS) {
+      const demandAge = demandAt ? hqDataAgeMs(demandAt) : 0;
+      if (intervalMs && demandAge >= 2 * intervalMs) {
         // Data is badly out of date: wait for a refresh instead of serving it.
-        const fresh = await refreshIfUnlocked(env);
+        const fresh = await refreshIfUnlocked(env, province);
         if (fresh) return { payload: fresh, state: "miss", ageSeconds: 0 };
       } else {
-        ctx.waitUntil(refreshIfUnlocked(env));
+        ctx.waitUntil(refreshIfUnlocked(env, province));
       }
       return { payload: cached.payload, state, ageSeconds: age };
     }
   }
 
   try {
-    const payload = await refreshMix(env);
+    const payload = await refreshMix(env, province);
     return { payload, state: "miss", ageSeconds: 0 };
   } catch (error) {
     if (!cached) throw error;
@@ -139,19 +161,19 @@ export async function serveMix(env: Env, ctx: ExecutionContext): Promise<MixResu
   }
 }
 
-async function refreshIfUnlocked(env: Env): Promise<MixPayload | null> {
+async function refreshIfUnlocked(env: Env, province: ProvinceId): Promise<MixPayload | null> {
   let locked = false;
   try {
-    locked = await acquireLock(env);
+    locked = await acquireLock(env, province);
     if (!locked) return null;
-    return await refreshMix(env);
+    return await refreshMix(env, province);
   } catch (error) {
-    logError("background mix refresh failed", error);
+    logError(`background ${province} mix refresh failed`, error);
     return null;
   } finally {
     if (locked) {
       try {
-        await env.MIX.delete(KV_LOCK);
+        await env.MIX.delete(kvKeys(province).lock);
       } catch {
         // lock expires via TTL
       }
