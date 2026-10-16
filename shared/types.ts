@@ -1,4 +1,4 @@
-export const PROVINCE_IDS = ["qc", "on"] as const;
+export const PROVINCE_IDS = ["qc", "on", "ab"] as const;
 
 export type ProvinceId = (typeof PROVINCE_IDS)[number];
 
@@ -11,7 +11,12 @@ export const SOURCE_KEYS = [
   "biomass",
   "other",
   "gas",
+  "cogeneration",
+  "combinedCycle",
+  "gasSteam",
+  "simpleCycle",
   "thermal",
+  "storage",
   "unclassified",
 ] as const;
 
@@ -39,6 +44,9 @@ export const MARKET_KEYS = [
   "manitoba",
   "michigan",
   "minnesota",
+  "britishcolumbia",
+  "montana",
+  "saskatchewan",
 ] as const;
 
 export type MarketKey = (typeof MARKET_KEYS)[number];
@@ -76,7 +84,7 @@ export type YearMix = {
 export type MixPayload = {
   province: ProvinceId;
   fetchedAt: string;
-  timezone: "America/Toronto";
+  timezone: "America/Toronto" | "America/Edmonton";
   production: {
     at: string;
     total: number;

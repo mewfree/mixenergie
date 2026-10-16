@@ -9,6 +9,11 @@ export const SOURCE_COLOR: Record<SourceKey, string> = {
   other: "#78a05e",
   gas: "#b4572b",
   thermal: "#b4572b",
+  cogeneration: "#8c3f1f",
+  combinedCycle: "#b4572b",
+  gasSteam: "#cf7a4d",
+  simpleCycle: "#e0a07a",
+  storage: "#6b5b95",
   unclassified: "#8a8a84",
 };
 

@@ -81,12 +81,14 @@ export function snapshotCacheState(
   storedAt: number,
   demandAt: string | undefined,
   now = Date.now(),
+  timeZone = "America/Toronto",
+  intervalMs = DEMAND_INTERVAL_MS,
 ): CacheState {
   const write = cacheState(storedAt, SNAPSHOT_FRESH_MS, SNAPSHOT_MAX_MS, now);
   if (write === "expired") return "expired";
   if (
     demandAt &&
-    hqDataAgeMs(demandAt, now) >= DEMAND_INTERVAL_MS + DEMAND_PUBLISH_SLACK_MS
+    hqDataAgeMs(demandAt, now, timeZone) >= intervalMs + DEMAND_PUBLISH_SLACK_MS
   ) {
     return "stale";
   }

@@ -1,7 +1,7 @@
 #+title: mixénergie
-#+subtitle: Mix énergétique du Québec et de l'Ontario
+#+subtitle: Mix énergétique du Québec, de l'Ontario et de l'Alberta
 
-Site simple, pour lire le mix électrique d'Hydro-Québec et de l'IESO : production, demande, échanges et mix annuel.
+Site simple, pour lire le mix électrique d'Hydro-Québec, de l'IESO et de l'AESO : production, demande, échanges et mix annuel.
 
 * Stack
 
@@ -40,6 +40,16 @@ L'IESO date tout en heure normale de l'Est (HNE), heure de fin d'heure. Le worke
 
 L'intensité GES utilise les médianes de cycle de vie du GIEC (AR5) : nucléaire 12, hydraulique 24, éolien 11, solaire 48, biomasse 230, gaz 490 g/kWh. Les sorties « autres » de l'IESO sont exclues de la moyenne. Le chiffre principal est la part sans émissions (nucléaire inclus) ; la part renouvelable est affichée en dessous.
 
+** Alberta
+
+Rapport « Current Supply Demand » de l'AESO, en CSV (=ets.aeso.ca/ets_web/ip/Market/Reports/CSDReportServlet?contentType=csv=), sans clé d'API, mis à jour environ chaque minute :
+
+- Production :: production nette (TNG) par groupe : cogénération, cycle combiné, vapeur au gaz, cycle simple, éolien, hydraulique, solaire, stockage, autres
+- Demande :: charge interne de l'Alberta (AIL)
+- Échanges :: flux net sur 3 interconnexions (Colombie-Britannique, Saskatchewan, Montana), positif = exportation
+
+Le rapport n'a pas d'historique ni de mix annuel. Le worker ajoute un relevé aux ~10 minutes dans KV (=mix:ab:history=, 48 h), donc le graphique se remplit depuis la mise en service. Les heures sont en heure des Rocheuses (=America/Edmonton=). Intensité GES : médianes GIEC (hydraulique 24, éolien 11, solaire 48, filières au gaz 490 g/kWh) ; stockage et « autres » exclus.
+
 * Cache
 
 | Couche            | Quoi             | Durée                                  |
@@ -76,14 +86,16 @@ npm run dev
 - =/en= anglais, Québec
 - =/on= français, Ontario
 - =/on/en= anglais, Ontario
-- API : =/api/mix= (Québec), =/api/mix/on= (Ontario)
+- =/ab= français, Alberta
+- =/ab/en= anglais, Alberta
+- API : =/api/mix= (Québec), =/api/mix/on= (Ontario), =/api/mix/ab= (Alberta)
 - Copie dans =src/i18n.ts=
 
 * Layout
 
 #+begin_example
 shared/          Types, config par province + calculs (front et worker)
-worker/          API /api/mix, /api/mix/on (hq.ts, ieso.ts)
+worker/          API /api/mix, /api/mix/on, /api/mix/ab (hq.ts, ieso.ts, aeso.ts)
 src/             UI
 public/          Favicon
 wrangler.jsonc   Cloudflare

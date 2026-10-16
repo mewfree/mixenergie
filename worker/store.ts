@@ -13,6 +13,7 @@ import {
 import { PROVINCES } from "../shared/provinces.ts";
 import type { MixPayload, ProvinceId, YearMix } from "../shared/types.ts";
 import * as hq from "./hq.ts";
+import * as aeso from "./aeso.ts";
 import * as ieso from "./ieso.ts";
 import { logError } from "./log.ts";
 
@@ -24,6 +25,7 @@ type Loader = {
 const LOADERS: Record<ProvinceId, Loader> = {
   qc: { loadMix: (_env, year) => hq.loadMix(year), loadYear: hq.loadYear },
   on: ieso,
+  ab: aeso,
 };
 
 type SnapshotMeta = { storedAt: number };
@@ -125,18 +127,24 @@ export async function serveMix(
   ctx: ExecutionContext,
   province: ProvinceId,
 ): Promise<MixResult> {
-  const intervalMs = PROVINCES[province].demandIntervalMs;
+  const { demandIntervalMs: intervalMs, timezone } = PROVINCES[province];
   const cached = await readSnapshot(env, province);
   if (cached) {
     // Only a live demand cadence lets us judge freshness from the data itself.
     const demandAt = intervalMs ? cached.payload.demand?.at : undefined;
-    const state = snapshotCacheState(cached.storedAt, demandAt);
+    const state = snapshotCacheState(
+      cached.storedAt,
+      demandAt,
+      Date.now(),
+      timezone,
+      intervalMs ?? undefined,
+    );
     const age = ageSeconds(cached.storedAt);
     if (state === "fresh") {
       return { payload: cached.payload, state, ageSeconds: age };
     }
     if (state === "stale") {
-      const demandAge = demandAt ? hqDataAgeMs(demandAt) : 0;
+      const demandAge = demandAt ? hqDataAgeMs(demandAt, Date.now(), timezone) : 0;
       if (intervalMs && demandAge >= 2 * intervalMs) {
         // Data is badly out of date: wait for a refresh instead of serving it.
         const fresh = await refreshIfUnlocked(env, province);
